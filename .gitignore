@@ -1,1 +1,5 @@
 data
+sumenv
+__pycache__
+*.mp4
+*mkv
