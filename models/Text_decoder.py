@@ -28,9 +28,14 @@ class TextDecoder(nn.Module):
         
         
         if captions is not None:
+            captions = self.tokenizer(
+                captions,
+                return_tensors='pt',
+                padding=True,
+            )
             out = self.model(
                 inputs_embeds=x,
-                labels=captions,
+                labels=captions['input_ids'],
             )
             return out
         else:
@@ -38,7 +43,7 @@ class TextDecoder(nn.Module):
                 inputs_embeds=x,
                 max_length=50,
             )
-            return generated
+            return self.tokenizer.batch_decode(generated, skip_special_tokens=True)
         
 if __name__ == '__main__':
     
@@ -47,15 +52,9 @@ if __name__ == '__main__':
     
     model = TextDecoder(backbone_name="facebook/bart-base",d_visual=2048)
     dummy_captions = ['A dog is playing in the park.', 'A cat is sitting on the sofa.']
-    tokenizer = model.tokenizer
-    tok = tokenizer(
-        dummy_captions,
-        return_tensors='pt',
-        padding=True,
-    )
-    out = model(temporal_feats, captions=tok['input_ids'])
+    out = model(temporal_feats, captions=dummy_captions)
     
     print("training loss:", out.loss.item())
     
-    gen_ids = model(temporal_feats)
-    print("Generated text:", tokenizer.batch_decode(gen_ids, skip_special_tokens=True))
+    generated = model(temporal_feats)
+    print("Generated text:", generated)

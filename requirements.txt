@@ -3,3 +3,4 @@ huggingface_hub[hf_xet]
 torch
 torchvision
 torchaudio
+pycocoevalcap

@@ -1,0 +1,8 @@
+{
+    "Captioner": {
+        "visual_backbone": "resnet50",
+        "temporal_backbone": "default",
+        "text_backbone": "facebook/bart-base",
+        "pretrained": true
+    }
+}
