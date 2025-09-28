@@ -14,12 +14,6 @@ def create_model(args):
     
     return model
     
-def load_datadict(args):
-    # load data based on args
-    data = np.load(args.data_path, allow_pickle=True)
-    dataset = CustomDataset(data)
-    dataloader = Dataloader(dataset, batch_size=args.batch_size, shuffle=True)
-    return dataloader
 def save_model(model_path: str, **save_dict):
     os.makedirs(os.path.split(model_path)[0], exist_ok=True)
     torch.save(save_dict, model_path)

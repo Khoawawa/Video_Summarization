@@ -1,7 +1,8 @@
 import os
 import torch
 import shutil
-from utils.util import create_model, load_datadict
+from utils.util import create_model
+from utils.prepare import load_datadict
 from train.train_model import train_model, test_model
 
 def train_main(args):
