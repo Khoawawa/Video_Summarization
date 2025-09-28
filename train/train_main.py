@@ -2,7 +2,7 @@ import os
 import torch
 import shutil
 from utils.util import create_model, load_datadict
-from train.train_model import train_model
+from train.train_model import train_model, test_model
 
 def train_main(args):
     # from args load dataloader
@@ -42,4 +42,6 @@ def train_main(args):
         args=args,
         start_epoch=start_epoch if args.model == "resume" else 0
                 )    
+    
+    test_model(model=model, test_loader=dataloaders['test'], args=args)
     
