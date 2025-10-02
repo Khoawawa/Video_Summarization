@@ -1,8 +1,9 @@
 import os
 import torch
 import shutil
-from utils.util import create_model, create_loss_fn, load_datadict
-from train.train_model import train_model
+from utils.util import create_model
+from utils.prepare import load_datadict
+from train.train_model import train_model, test_model
 
 def train_main(args):
     # from args load dataloader
@@ -13,9 +14,6 @@ def train_main(args):
     model_dir = f"{args.absPath}/data/save_models/{args.model}_{args.dataset}"
     args.model_dir = model_dir
     model  = model.to(args.device)
-    
-    # create criterion
-    loss_fn = create_loss_fn(args)
     # create optimizer
     if args.optim.lower() == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -40,10 +38,11 @@ def train_main(args):
     train_model(
         model=model, 
         data_loaders=dataloaders,
-        loss_fn=loss_fn,
         optimizer=optimizer,
         model_dir=model_dir,
         args=args,
         start_epoch=start_epoch if args.model == "resume" else 0
                 )    
+    
+    test_model(model=model, test_loader=dataloaders['test'], args=args)
     

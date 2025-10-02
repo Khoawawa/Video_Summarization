@@ -31,14 +31,24 @@ class Captioner(nn.Module):
         captions: tensor of shape (B,T) or None
         '''
         visual_feats = self.visual_encoder(video_clips) # (F,d)
-        visual_feats = self.linear(visual_feats) # (F, d_model)
+        visual_feats :torch.Tensor = self.linear(visual_feats) # (F, d_model)
         visual_feats = visual_feats.unsqueeze(0) # (1,F,d_model)
-        return self.text_decoder(visual_feats, captions)
+        if captions is not None:
+            visual_feats = visual_feats.expand(len(captions), -1, -1) # [no_captions, F, d_model]
+        
+        return self.text_decoder(visual_feats, captions) # depend on the captions input will output either loss or generated captions
     
 if __name__ == '__main__':
     model = Captioner()
     x = torch.randn(3, 8, 224, 224) # (C,F,H,W)
-    with torch.no_grad():
-        out = model(x)
-    print(out.shape)
+    caption = "a cat is playing with a ball"
+    tokenizer = model.text_decoder.tokenizer
+    out = model(x, captions=[caption])
+    print(out.loss.item())
+    
+    model.eval()
+    generated = model(x)
+    print(generated)
+    print(type(generated))
+    
     

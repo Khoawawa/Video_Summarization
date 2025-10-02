@@ -3,35 +3,109 @@ from torch import nn, optim
 import time
 import copy
 from tqdm import tqdm
+from utils.util import save_model
+from utils.metric import calculate_metrics
 def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataLoader], 
-                loss_fn: nn.Module, optimizer: optim.Optimizer, 
+                optimizer: optim.Optimizer, 
                 model_dir: str, args, start_epoch: int = 0):
     # setting up training loop
     num_epochs = args.epochs
     start_time = time.perf_counter()
-    phases = ['train', 'val']
     with open(model_dir + "/output.txt", "a") as f:
-        f.write(f"Training start time: {start_time} seconds\n")
+        f.write(str(model))
+        f.write(f"\n\n")
     
-    save_dict, best_mae = {'model_state_dict': copy.deepcopy(model.state_dict()), 'epoch': start_epoch}, float('inf')
-    
+    save_dict, best_cider = {'model_state_dict': copy.deepcopy(model.state_dict()), 'epoch': start_epoch}, float('-inf')
+    # separating train and val is crucial
     for epoch in range(start_epoch, start_epoch + num_epochs):
-        running_loss = {phase: 0.0 for phase in phases}
+        # training loop
+        running_loss = 0.0
+        model.train()
+        steps, preds, tgts = 0, list(), list()
+        tqdm_train_loader = tqdm(data_loaders['train'], mininterval=3)
+        for frame, captions in tqdm_train_loader:
+            steps += len(captions)
+            frame = frame.to(args.device)
+            optimizer.zero_grad()
+            
+            outputs = model(frame,captions)
+            loss = outputs.loss
+            # backpropagate
+            loss.backward()
+            optimizer.step()
+            
+            running_loss += loss.item() * len(captions)
+            
+            tqdm_train_loader.set_description(
+                f"Train epoch: {epoch}, train loss: {(running_loss / steps) : .8f}"
+            )
+        train_time = time.perf_counter() - start_time
+        # logging train loss
+        with open(model_dir + "/output.txt", "a") as f:
+            f.write(f"Train epoch: {epoch}, train loss: {(running_loss / steps) : .8f}\n")
+            f.write(f"Train time: {train_time} seconds\n")
+            f.write("\n")
         
-        for phase in phases:
-            if phase == 'train':
-                model.train()
-            else:
-                model.eval()
-            
-            steps, preds, tgts = 0, list(), list()
-            tqdm_loader = tqdm(data_loaders[phase], mininterval=3)
-            # main loop start
-            
-            for frames, captions in tqdm_loader:
-                steps += len(captions)
+        # validation loop
+        model.eval()
+        with torch.no_grad():
+            for frame, captions in tqdm(data_loaders['val'], mininterval=3,desc="Validating"):
+                # captions should be a list[str]
                 frames = frames.to(args.device)
-                tgts.extend(captions)
-                optimizer.zero_grad()
-                with torch.set_grad_enabled(phase == 'train'):
-                    outputs
+                outputs = model(frames,None)
+                
+                for refs, pred in zip(captions, outputs):
+                    tgts.append(refs if isinstance(refs, list) else [refs])
+                    preds.append(pred)
+            scores = calculate_metrics(preds, tgts) # this should calculate all metric we want --> BLEU, CIDER, METEOR, ....
+            val_time = time.perf_counter() - start_time 
+        # logging metrics
+        with open(model_dir + "/output.txt", "a") as f:
+            f.write(f"Val epoch: {epoch}\n") 
+            f.write(str(scores))
+            f.write("\n")
+            f.write(f"Val time: {val_time} seconds\n")
+            f.write("\n")
+        # for this part we need to save the best model in case of multiple epoch training
+        if scores['CIDEr'] > best_cider:
+            best_cider = scores['CIDEr']
+            save_dict.update(model_state_dict=copy.deepcopy(model.state_dict()), epoch=epoch,optimzer_state_dict=copy.deepcopy(optimizer.state_dict()))
+            save_model(f"{model_dir}/best_model.pkl", **save_dict)
+    
+    time_elapsed = time.perf_counter() - start_time
+    h, rem = divmod(time_elapsed, 3600)
+    m, s   = divmod(rem, 60)
+    print(f"Training complete in {h} hours {m} minutes {s} seconds")
+    
+    save_model(f"{model_dir}/final_model.pkl",
+               **{
+                   'model_state_dict': copy.deepcopy(model.state_dict()),
+                   'epoch': epoch,
+                   'optimizer_state_dict': copy.deepcopy(optimizer.state_dict())
+               })
+                    
+def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args):
+    model.eval()
+    preds, tgts = list(), list()
+    with torch.no_grad():
+        
+        for frame, captions in tqdm(test_loader, mininterval=3, desc="Testing..."):
+            outputs = model(frame)
+            for refs, pred in zip(captions, outputs):
+                tgts.append(refs if isinstance(refs, list) else [refs])
+                preds.append(pred)
+    metric = calculate_metrics(preds, tgts)
+    print(metric)
+    with open(f'{args.absPath}/data/result_{args.model}.txt', 'a') as f:
+        f.write(time.strftime("%m/%d %H:%M:%S", time.localtime(time.time())))
+        f.write(f"epoch: {args.epochs}, lr: {args.lr}\n dataset: {args.dataset}\n")
+        f.write(str(metric))
+        f.write("\n\n")
+    with open(f'{args.absPath}/data/prediction_{args.model}.txt', 'a') as f:
+        f.write(time.strftime("%m/%d %H:%M:%S", time.localtime(time.time())))
+        f.write(f"epoch: {args.epochs}, lr: {args.lr}\n dataset: {args.dataset}\n")
+        f.write(str(preds))
+        f.write("\n")
+        f.write(str(tgts))
+        f.write("\n\n")
+        
