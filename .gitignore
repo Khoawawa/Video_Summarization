@@ -1,5 +1,7 @@
-data
+data/keyframes/
+data/MRS-VTT/
 sumenv
 __pycache__
 *.mp4
 *mkv
+*.png
