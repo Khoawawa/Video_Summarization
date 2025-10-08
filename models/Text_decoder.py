@@ -11,11 +11,10 @@ class TextDecoder(nn.Module):
         elif "bart" in backbone_name:
             self.tokenizer = BartTokenizer.from_pretrained(backbone_name)
             self.model = BartForConditionalGeneration.from_pretrained(backbone_name)
-            
+            for param in self.model.parameters():
+                param.requires_grad = False
         else:
             raise NotImplementedError(f"Backbone {backbone_name} not implemented")
-        
-        self.visual_proj = nn.Linear(d_visual, self.model.config.d_model)
         
         
     def forward(self, x, captions=None):
@@ -26,7 +25,6 @@ class TextDecoder(nn.Module):
         '''
         B, F, d = x.shape 
         
-        
         if captions is not None:
             captions = self.tokenizer(
                 captions,
@@ -35,7 +33,7 @@ class TextDecoder(nn.Module):
             )
             out = self.model(
                 inputs_embeds=x,
-                labels=captions['input_ids'],
+                labels=captions['input_ids'].to(x.device),
             )
             return out
         else:
