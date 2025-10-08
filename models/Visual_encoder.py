@@ -28,6 +28,8 @@ class VisualEncoder(torch.nn.Module):
             self.spatial_model = nn.Sequential(*list(spatial_model.children())[:-1]) # remove the classification head
             self.d = d
             self.is_clip = False
+            for param in self.spatial_model.parameters():
+                param.requires_grad = False
         
         # Temporal encoder
         if temporal_backbone == 'default':
