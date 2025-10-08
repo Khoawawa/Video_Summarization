@@ -114,6 +114,7 @@ class VideoTensorDataset(Dataset):
     def __init__(self, csv_file, transform=None, num_frames=16):
         if isinstance(csv_file, str):
             self.df = pd.read_csv(csv_file)
+            self.csv_file = csv_file
         else:
             self.df = csv_file.copy()
         self.transform = transform
@@ -126,7 +127,7 @@ class VideoTensorDataset(Dataset):
         row = self.df.iloc[idx]
         video_id = row['video_id']
         video_path = row['video_path']
-        root_dir = os.path.dirname(os.path.abspath(csv_file))
+        root_dir = os.path.dirname(os.path.abspath(self.csv_file))
         video_path = os.path.join(root_dir, video_path)
         video_path = os.path.normpath(video_path)
 

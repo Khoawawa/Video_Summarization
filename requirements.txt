@@ -5,7 +5,6 @@ torchvision
 torchaudio
 pycocoevalcap
 numpy
-random
 datasets
 matplotlib
 pandas
