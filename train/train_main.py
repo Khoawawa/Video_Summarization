@@ -2,12 +2,17 @@ import os
 import torch
 import shutil
 from utils.util import create_model
-from utils.prepare import load_datadict
+from utils.prepare import load_datadict, load_video_loaders
 from train.train_model import train_model, test_model
 
 def train_main(args):
     # from args load dataloader
-    dataloaders = load_datadict(args)
+    csv_path = f"{args.absPath}/preprocessing/video_and_keyframe_path.csv"
+    mode = 'train' 
+    if args.data_mode == "keyframe":
+        dataloaders = load_datadict(csv_path, batch_size=args.batch_size, mode=mode)
+    elif args.data_mode == "video":
+        dataloaders = load_video_loaders(csv_path, batch_size=args.batch_size, mode=mode, num_frames=args.num_frames)
     
     model : torch.nn.Module = create_model(args)
     
