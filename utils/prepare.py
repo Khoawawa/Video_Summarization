@@ -9,7 +9,7 @@ import ast
 import os
 import cv2
 
-csv_file = '../preprocessing/video_and_keyframe_path.csv'
+csv_file = '../Video_Summarization/preprocessing/video_and_keyframe_path.csv'
 
 class KeyframeDataset(Dataset):
     def __init__(self, csv_file, transform=None):
@@ -104,8 +104,8 @@ def load_datadict(csv_file, batch_size=8, mode="train"):
 
     for phase in phases:
         df_phase = df[df['split'] == phase]
-        temp_csv = f"data/{phase}.csv"
-        df_phase.to_csv(temp_csv, index=False)
+        '''temp_csv = f"..Video_Summarization/utils/data/{phase}.csv"
+        df_phase.to_csv(temp_csv, index=False)'''
 
         dataset = KeyframeDataset(df_phase, transform=transform)
         loaders[phase] = DataLoader(dataset, batch_size=batch_size, shuffle=(phase == 'train'),

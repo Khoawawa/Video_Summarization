@@ -1,5 +1,5 @@
-from prepare import load_datadict, load_video_loaders
-csv_file = '../preprocessing/video_and_keyframe_path.csv'
+from utils.prepare import load_datadict, load_video_loaders
+csv_file = '../Video_Summarization/preprocessing/video_and_keyframe_path.csv'
 loaders = load_datadict(csv_file, batch_size=4)
 videoloader = load_video_loaders(csv_file, 4, mode="train", num_frames = 10)
 # Test loading one batch
