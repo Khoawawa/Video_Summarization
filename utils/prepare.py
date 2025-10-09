@@ -201,4 +201,7 @@ def load_video_loaders(csv_file, batch_size=2, mode="train", num_frames=16):
         )
     return loaders
 
-
+if __name__ == '__main__':
+    csv_file = '../preprocessing/video_and_keyframe_path.csv'
+    loader = load_video_loaders(csv_file)
+    print(next(iter(loader['train'])))
