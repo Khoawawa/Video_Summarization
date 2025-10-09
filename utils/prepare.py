@@ -9,7 +9,7 @@ import ast
 import os
 import cv2
 
-csv_file = '../Video_Summarization/preprocessing/video_and_keyframe_path.csv'
+csv_file = '../preprocessing/video_and_keyframe_path.csv'
 
 class KeyframeDataset(Dataset):
     def __init__(self, csv_file, transform=None):
@@ -30,7 +30,7 @@ class KeyframeDataset(Dataset):
         row = self.df.iloc[idx]
         video_id = row['video_id']
         key_frame_paths = row['keyframe_paths']
-        caption = row['captions']
+
         images = []
         if len(key_frame_paths) > 0:
             for img_path in key_frame_paths:
@@ -57,7 +57,6 @@ class KeyframeDataset(Dataset):
 
         return {
             "video_id": str(video_id),
-            "caption": caption,
             "images": images,
             "num_key_frames": row['num_key_frames']
         }
@@ -87,10 +86,9 @@ def collate_fn(batch):
     video_ids = [item["video_id"] for item in batch]
     images = [item["images"] for item in batch]  # list of [num_frames, C, H, W]
     num_key_frames = [item["num_key_frames"] for item in batch]
-    caption = [item['caption'] for item in batch]
+
     return {
         "video_id": video_ids,
-        "caption": caption,
         "images": images,  # giữ list vì num_frames khác nhau
         "num_key_frames": torch.tensor(num_key_frames)
     }
@@ -106,8 +104,8 @@ def load_datadict(csv_file, batch_size=8, mode="train"):
 
     for phase in phases:
         df_phase = df[df['split'] == phase]
-        '''temp_csv = f"..Video_Summarization/utils/data/{phase}.csv"
-        df_phase.to_csv(temp_csv, index=False)'''
+        temp_csv = f"data/{phase}.csv"
+        df_phase.to_csv(temp_csv, index=False)
 
         dataset = KeyframeDataset(df_phase, transform=transform)
         loaders[phase] = DataLoader(dataset, batch_size=batch_size, shuffle=(phase == 'train'),
@@ -116,11 +114,10 @@ def load_datadict(csv_file, batch_size=8, mode="train"):
     return loaders
 
 class VideoTensorDataset(Dataset):
-    def __init__(self, csv_file, transform=None, num_frames=16):
-        if isinstance(csv_file, str):
-            self.df = pd.read_csv(csv_file)
-        else:
-            self.df = csv_file.copy()
+    def __init__(self, df, csv_file:str, transform=None, num_frames=16):
+        self.df = df.copy()
+        self.csv_file = csv_file
+        
         self.transform = transform
         self.num_frames = num_frames
 
@@ -129,12 +126,10 @@ class VideoTensorDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
-        global csv_file
         row = self.df.iloc[idx]
         video_id = row['video_id']
         video_path = row['video_path']
-        caption = row['captions']
-        root_dir = os.path.dirname(os.path.abspath(csv_file))
+        root_dir = os.path.dirname(os.path.abspath(self.csv_file))
         video_path = os.path.join(root_dir, video_path)
         video_path = os.path.normpath(video_path)
 
@@ -169,7 +164,6 @@ class VideoTensorDataset(Dataset):
         video_tensor = torch.stack(frames, dim=0)
         return {
             "video_id": str(video_id),
-            "caption": caption,
             "video_tensor": video_tensor,
             "num_frames": len(frames)
         }
@@ -178,10 +172,8 @@ def collate_video_fn(batch):
     video_ids = [item["video_id"] for item in batch]
     video_tensors = [item["video_tensor"] for item in batch]
     num_frames = [item["num_frames"] for item in batch]
-    caption = [item["caption"] for item in batch]
     return {
         "video_id": video_ids,
-        "caption": caption,
         "video_tensor": video_tensors,  # list do num_frames có thể khác nhau
         "num_frames": torch.tensor(num_frames)
     }
@@ -202,11 +194,14 @@ def load_video_loaders(csv_file, batch_size=2, mode="train", num_frames=16):
     phases = ['train', 'val', 'test'] if mode != "test" else ['test']
     for phase in phases:
         df_phase = df[df['split'] == phase]
-        dataset = VideoTensorDataset(df_phase, num_frames=num_frames)
+        dataset = VideoTensorDataset(df_phase,csv_file=csv_file, num_frames=num_frames)
         loaders[phase] = DataLoader(
             dataset, batch_size=batch_size, shuffle=(phase == "train"),
             collate_fn=collate_video_fn
         )
     return loaders
 
-
+if __name__ == '__main__':
+    csv_file = '../preprocessing/video_and_keyframe_path.csv'
+    loader = load_video_loaders(csv_file)
+    print(next(iter(loader['train'])))
