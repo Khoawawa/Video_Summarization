@@ -114,11 +114,10 @@ def load_datadict(csv_file, batch_size=8, mode="train"):
     return loaders
 
 class VideoTensorDataset(Dataset):
-    def __init__(self, csv_file, transform=None, num_frames=16):
-        if isinstance(csv_file, str):
-            self.df = pd.read_csv(csv_file)
-        else:
-            self.df = csv_file.copy()
+    def __init__(self, df, csv_file:str, transform=None, num_frames=16):
+        self.df = df.copy()
+        self.csv_file = csv_file
+        
         self.transform = transform
         self.num_frames = num_frames
 
@@ -127,11 +126,10 @@ class VideoTensorDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
-        global csv_file
         row = self.df.iloc[idx]
         video_id = row['video_id']
         video_path = row['video_path']
-        root_dir = os.path.dirname(os.path.abspath(csv_file))
+        root_dir = os.path.dirname(os.path.abspath(self.csv_file))
         video_path = os.path.join(root_dir, video_path)
         video_path = os.path.normpath(video_path)
 
@@ -196,7 +194,7 @@ def load_video_loaders(csv_file, batch_size=2, mode="train", num_frames=16):
     phases = ['train', 'val', 'test'] if mode != "test" else ['test']
     for phase in phases:
         df_phase = df[df['split'] == phase]
-        dataset = VideoTensorDataset(df_phase, num_frames=num_frames)
+        dataset = VideoTensorDataset(df_phase,csv_file=csv_file, num_frames=num_frames)
         loaders[phase] = DataLoader(
             dataset, batch_size=batch_size, shuffle=(phase == "train"),
             collate_fn=collate_video_fn
