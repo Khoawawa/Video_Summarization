@@ -30,7 +30,7 @@ class KeyframeDataset(Dataset):
         row = self.df.iloc[idx]
         video_id = row['video_id']
         key_frame_paths = row['keyframe_paths']
-
+        caption = row['captions']
         images = []
         if len(key_frame_paths) > 0:
             for img_path in key_frame_paths:
@@ -57,6 +57,7 @@ class KeyframeDataset(Dataset):
 
         return {
             "video_id": str(video_id),
+            "caption": caption,
             "images": images,
             "num_key_frames": row['num_key_frames']
         }
@@ -86,9 +87,10 @@ def collate_fn(batch):
     video_ids = [item["video_id"] for item in batch]
     images = [item["images"] for item in batch]  # list of [num_frames, C, H, W]
     num_key_frames = [item["num_key_frames"] for item in batch]
-
+    caption = [item['caption'] for item in batch]
     return {
         "video_id": video_ids,
+        "caption": caption,
         "images": images,  # giữ list vì num_frames khác nhau
         "num_key_frames": torch.tensor(num_key_frames)
     }
@@ -131,6 +133,7 @@ class VideoTensorDataset(Dataset):
         row = self.df.iloc[idx]
         video_id = row['video_id']
         video_path = row['video_path']
+        caption = row['captions']
         root_dir = os.path.dirname(os.path.abspath(csv_file))
         video_path = os.path.join(root_dir, video_path)
         video_path = os.path.normpath(video_path)
@@ -166,6 +169,7 @@ class VideoTensorDataset(Dataset):
         video_tensor = torch.stack(frames, dim=0)
         return {
             "video_id": str(video_id),
+            "caption": caption,
             "video_tensor": video_tensor,
             "num_frames": len(frames)
         }
@@ -174,8 +178,10 @@ def collate_video_fn(batch):
     video_ids = [item["video_id"] for item in batch]
     video_tensors = [item["video_tensor"] for item in batch]
     num_frames = [item["num_frames"] for item in batch]
+    caption = [item["caption"] for item in batch]
     return {
         "video_id": video_ids,
+        "caption": caption,
         "video_tensor": video_tensors,  # list do num_frames có thể khác nhau
         "num_frames": torch.tensor(num_frames)
     }

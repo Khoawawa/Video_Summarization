@@ -8,6 +8,7 @@ batch = next(iter(loaders['train']))
 images = batch['images']   # tensor [B, num_frames, C, H, W] hoặc [B, C, H, W]
 print(images[0].shape)
 print("Số video trong batch:", len(images))
+print(batch['caption'])
 #for i, vid in enumerate(images):
 #    print(f"Video {i} shape:", vid)  # (T, C, H, W)
 print("/////// VIDEO TENSOR ///////////")
@@ -15,5 +16,6 @@ videobatch = next(iter(videoloader['train']))
 videotensor = videobatch['video_tensor']
 print(videotensor[0].shape)
 print("Số video trong batch:", len(videotensor))
+print(videobatch['caption'])
 #for i, vid in enumerate(videotensor):
 #    print(f"Video {i} shape:", vid)  # (T, C, H, W)
