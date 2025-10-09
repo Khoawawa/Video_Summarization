@@ -168,7 +168,7 @@ class VideoTensorDataset(Dataset):
         video_tensor = torch.stack(frames, dim=0)
         return {
             "video_id": str(video_id),
-            "caption": caption,
+            "captions": caption,
             "video_tensor": video_tensor,
             "num_frames": len(frames)
         }
@@ -177,10 +177,10 @@ def collate_video_fn(batch):
     video_ids = [item["video_id"] for item in batch]
     video_tensors = [item["video_tensor"] for item in batch]
     num_frames = [item["num_frames"] for item in batch]
-    caption = [item["caption"] for item in batch]
+    caption = [item["captions"] for item in batch]
     return {
         "video_id": video_ids,
-        "caption": caption,
+        "captions": caption,
         "video_tensor": video_tensors,  # list do num_frames có thể khác nhau
         "num_frames": torch.tensor(num_frames)
     }
