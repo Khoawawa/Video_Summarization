@@ -29,5 +29,13 @@ class Captioner(nn.Module):
         return self.text_decoder(visual_feats, captions) # loss / caption
     
 if __name__ == '__main__':
-    pass
+    model = Captioner()
+    x = torch.randn(2, 3, 224, 224)
+    captions = ["A dog is playing in the park.", "A cat is sitting on the sofa."]
+    output = model(x, captions)
+    print(output)
+    
+    with torch.no_grad():
+        output = model(x)
+        print(output)
     
