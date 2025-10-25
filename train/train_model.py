@@ -23,13 +23,13 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
         model.train()
         steps, preds, tgts = 0, list(), list()
         tqdm_train_loader = tqdm(data_loaders['train'], mininterval=3)
-        for frame, captions in tqdm_train_loader:
+        for images, captions in tqdm_train_loader:
+            # images : tensor of shape (B, C, H, W)
+            # captions: list of captions
             steps += len(captions)
-            frame = frame.to(args.device)
+            images = images.to(args.device)
             optimizer.zero_grad()
-            
-            outputs = model(frame,captions)
-            loss = outputs.loss
+            loss = model(images,captions)
             # backpropagate
             loss.backward()
             optimizer.step()
@@ -49,10 +49,10 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
         # validation loop
         model.eval()
         with torch.no_grad():
-            for frame, captions in tqdm(data_loaders['val'], mininterval=3,desc="Validating"):
+            for images, captions in tqdm(data_loaders['val'], mininterval=3,desc="Validating"):
                 # captions should be a list[str]
-                frames = frames.to(args.device)
-                outputs = model(frames,None)
+                images = images.to(args.device)
+                outputs = model(images,None)
                 
                 for refs, pred in zip(captions, outputs):
                     tgts.append(refs if isinstance(refs, list) else [refs])
@@ -89,8 +89,8 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
     preds, tgts = list(), list()
     with torch.no_grad():
         
-        for frame, captions in tqdm(test_loader, mininterval=3, desc="Testing..."):
-            outputs = model(frame)
+        for images, captions in tqdm(test_loader, mininterval=3, desc="Testing..."):
+            outputs = model(images, None)
             for refs, pred in zip(captions, outputs):
                 tgts.append(refs if isinstance(refs, list) else [refs])
                 preds.append(pred)

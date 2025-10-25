@@ -4,5 +4,13 @@
         "temporal_backbone": "default",
         "text_backbone": "facebook/bart-base",
         "pretrained": true
+    },
+    "Captioner_gpt2_resnet": {
+        "visual_backbone": "resnet50",
+        "prefix_hidden_dim": 512,
+        "text_backbone_name": "gpt2",
+        "mapping_hidden_layers": 1,
+        "pretrained": true,
+        "unfreeze_layer": 0
     }
 }
