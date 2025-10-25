@@ -1,0 +1,6 @@
+index,Model,Best Train MAE,Epoch (Train),Best Val MAE,Epoch (Val),Best Test MAE,Epoch (Test)
+0,MulT-TTE,88.4025,10,91.9749,9,92.3132,9
+1,WGANGP_scaled_loss_MulT-TTE,84.2841,14,89.6522,13,90.2958,13
+2,WGANGP_scaled_loss_theta_5e-3_MulT-TTE,97.5811,4,95.1485,4,95.478,4
+3,WGANGP_scaled_loss_theta_10e-2_MulT-TTE,137.3435,6,135.499,5,136.5343,5
+4,WGANGP_scaled_loss_small_MulT-TTE,87.1156,13,91.1095,12,91.705,12
