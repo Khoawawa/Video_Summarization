@@ -9,8 +9,8 @@
         "visual_backbone": "resnet50",
         "prefix_hidden_dim": 512,
         "text_backbone_name": "gpt2",
-        "mapping_hidden_layers": 1,
+        "mapping_hidden_layers": 2,
         "pretrained": true,
-        "unfreeze_layer": 0
+        "unfreeze_layer": 2
     }
 }
