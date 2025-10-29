@@ -35,57 +35,37 @@ class AutoregressiveModel(nn.Module):
 
         # Sanitize prefix
         prefix_embs = torch.nan_to_num(prefix_embs, nan=0.0, posinf=0.0, neginf=0.0)
-        prefix_embs = prefix_embs.clamp(min=-50, max=50)
+        prefix_embs = prefix_embs.clamp(min=-100, max=100)
 
         # Start with BOS
         bos_id = self.tokenizer.bos_token_id or self.tokenizer.eos_token_id
         generated = torch.full((B, 1), bos_id, dtype=torch.long, device=device)
 
-        # Embed BOS
-        input_embs = self.model.transformer.wte(generated)  # (B,1,D)
-        input_embs = torch.nan_to_num(input_embs, nan=0.0, posinf=0.0, neginf=0.0)
-        input_embs = input_embs.clamp(min=-50, max=50)
+        for _ in range(max_length):
+            # Embed generated tokens
+            caption_embs = self.model.transformer.wte(generated)
+            caption_embs = torch.nan_to_num(caption_embs, nan=0.0, posinf=0.0, neginf=0.0)
+            caption_embs = caption_embs.clamp(min=-100, max=100)
 
-        # ADD PREFIX AS BIAS TO FIRST HIDDEN STATE
-        input_embs = input_embs + prefix_embs  # (B,1,D)
+            # Prepend prefix
+            input_embs = torch.cat([prefix_embs, caption_embs], dim=1)  # (B, 1+T, D)
 
-        # First forward: no cache
-        out = self.model(inputs_embeds=input_embs, use_cache=False)
-        logits = out.logits[:, -1, :]
-        logits = torch.nan_to_num(logits, nan=0.0, posinf=-88.0, neginf=-88.0)
+            # NO CACHE. NO PAST. NO PROBLEMS.
+            with torch.no_grad():
+                outputs = self.model(inputs_embeds=input_embs, use_cache=False)
 
-        next_tok = torch.argmax(logits, dim=-1, keepdim=True)
-        next_tok = next_tok.clamp(min=0, max=vocab_size - 1)
-        generated = torch.cat([generated, next_tok], dim=1)
-
-        if torch.all(next_tok == self.tokenizer.eos_token_id):
-            return self.tokenizer.batch_decode(generated[:, 1:], skip_special_tokens=True)
-
-        # Subsequent steps: normal autoregressive + caching
-        past_key_values = None
-        for _ in range(1, max_length):
-            text_embs = self.model.transformer.wte(generated)
-            text_embs = torch.nan_to_num(text_embs, nan=0.0, posinf=0.0, neginf=0.0)
-            text_embs = text_embs.clamp(min=-50, max=50)
-
-            out = self.model(
-                inputs_embeds=text_embs,
-                past_key_values=past_key_values,
-                use_cache=True,
-            )
-            past_key_values = out.past_key_values
-
-            logits = out.logits[:, -1, :]
+            logits = outputs.logits[:, -1, :]  # (B, V)
             logits = torch.nan_to_num(logits, nan=0.0, posinf=-88.0, neginf=-88.0)
-            next_tok = torch.argmax(logits, dim=-1, keepdim=True)
-            next_tok = next_tok.clamp(min=0, max=vocab_size - 1)
 
-            generated = torch.cat([generated, next_tok], dim=1)
+            next_token = torch.argmax(logits, dim=-1, keepdim=True)
+            next_token = next_token.clamp(min=0, max=vocab_size - 1)
 
-            if torch.all(next_tok == self.tokenizer.eos_token_id):
+            generated = torch.cat([generated, next_token], dim=1)
+
+            if torch.all(next_token == self.tokenizer.eos_token_id):
                 break
 
-        return self.tokenizer.batch_decode(generated[:, 1:], skip_special_tokens=True) 
+        return self.tokenizer.batch_decode(generated[:, 1:], skip_special_tokens=True)
     def forward(self,x_visual, captions=None):
         # x_visual: [B, d_visual]    
         B = x_visual.shape[0]    
