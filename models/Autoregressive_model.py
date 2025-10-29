@@ -41,6 +41,8 @@ class AutoregressiveModel(nn.Module):
                 use_cache=True
             )
             next_token = torch.argmax(outputs.logits[:, -1, :], dim=-1, keepdim=True)
+            next_token = next_token.clamp(0, self.model.config.vocab_size - 1)
+            
             generated = torch.cat([generated, next_token], dim=1)
             past_key_values = outputs.past_key_values
             
@@ -71,3 +73,7 @@ class AutoregressiveModel(nn.Module):
         else:
             # inference
             return self.__generate_caption(prefix_embs, max_length=50)
+
+if __name__ == '__main__':
+    model = AutoregressiveModel(prefix_hidden_dim=512, backbone_name="gpt2", d_visual=2048, hidden_layers=1)
+    print(model.tokenizer.pad_token_id, model.tokenizer.eos_token_id, model.model.config.vocab_size)
