@@ -1,7 +1,7 @@
 import os
 import sys
 import argparse
-from train.train_main import train_main, test_main
+from train.train_main import train_main, test_main, tester
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -20,8 +20,8 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     args.absPath = os.path.dirname(os.path.abspath(__file__))
-    
-    if args.data_mode == "train":
-        train_main(args)
-    else:
-        test_main(args)
+    tester(args)
+    # if args.data_mode == "train":
+    #     train_main(args)
+    # else:
+    #     test_main(args)
