@@ -4,10 +4,14 @@ import shutil
 from utils.util import create_model
 from utils.prepare import load_image_loaders
 from train.train_model import train_model, test_model
+import json
 
 def train_main(args):
     # from args load dataloader
-    loaders = load_image_loaders(args.csv_path, args, mode=args.data_mode)
+    # push data_config to args
+    with open(f"{args.absPath}/utils/data_config.json", "r") as f:
+        args.data_config = json.load(f)[args.dataset]
+    loaders = load_image_loaders(args.data_config['csv_path'], args, mode=args.data_mode)
     
     model : torch.nn.Module = create_model(args)
     

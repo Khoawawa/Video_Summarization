@@ -33,7 +33,9 @@ class ImageDataset(Dataset):
         return image, caption
 def load_image_loaders(csv_path, args, mode='train'):
     global transform
-    dataset = ImageDataset(csv_path,args.img_dir, transform)
+    true_csv_path = os.path.join(args.data_config['data_dir'], csv_path)
+    true_img_dir = os.path.join(args.data_config['data_dir'], args.data_config['img_dir'])
+    dataset = ImageDataset(true_csv_path, true_img_dir, transform)
     def split_dataset(dataset, train_ratio=0.7, val_ratio=0.15, seed=42):
         torch.manual_seed(seed)
         np.random.seed(seed)

@@ -1,7 +1,8 @@
 {
     "flickr":{
-        "img_dir": "data/flickr30k_images/flickr30k_images",
-        "csv_path": "data/flickr30k_images/result.csv",
+        "data_dir": "data",
+        "img_dir": "flickr30k_images/flickr30k_images",
+        "csv_path": "flickr30k_images/result.csv",
         "batch_size": 32
     }
 }
