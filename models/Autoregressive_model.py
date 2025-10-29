@@ -10,6 +10,7 @@ class AutoregressiveModel(nn.Module):
             self.tokenizer = GPT2Tokenizer.from_pretrained(backbone_name)
             self.model = GPT2LMHeadModel.from_pretrained(backbone_name)
             self.input_size = self.model.config.n_embd
+            self.vocab_size = self.model.config.vocab_size
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
                 self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
