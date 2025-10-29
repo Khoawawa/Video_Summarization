@@ -52,13 +52,22 @@ def load_image_loaders(csv_path, args, mode='train'):
     loaders = {}
     phases = ['train', 'val', 'test'] if mode != "test" else ['test']
     train_dataset, val_dataset, test_dataset = split_dataset(dataset)
+    pin_memory = torch.cuda.is_available()
     for phase in phases:
+        shuffle = (phase == 'train')
         if phase == 'train':
-            loaders[phase] = DataLoader(train_dataset, batch_size=args.data_config['batch_size'], shuffle=True)
+            data = train_dataset
         elif phase == 'val':
-            loaders[phase] = DataLoader(val_dataset, batch_size=args.data_config['batch_size'], shuffle=False)
+            data = val_dataset
         else:
-            loaders[phase] = DataLoader(test_dataset, batch_size=args.data_config['batch_size'], shuffle=False)
+            data = test_dataset
+        
+        loaders[phase] = DataLoader(
+            data,
+            batch_size=args.data_config['batch_size'],
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+        )
     return loaders
     
 class KeyframeDataset(Dataset):

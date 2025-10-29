@@ -91,6 +91,7 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
     with torch.no_grad():
         
         for images, captions in tqdm(test_loader, mininterval=3, desc="Testing..."):
+            images = images.to(args.device)
             outputs = model(images, None)
             for refs, pred in zip(captions, outputs):
                 tgts.append(refs if isinstance(refs, list) else [refs])
