@@ -16,24 +16,23 @@ class VisualEncoder(torch.nn.Module):
             raise NotImplementedError(f'Spatial backbone {spatial_backbone} not implemented')
         
         if 'resnet' in spatial_backbone:
-            self.spatial_model = nn.Sequential(*list(spatial_model.children())[:-1]) # remove the classification head
+            self.spatial_model = nn.Sequential(*list(spatial_model.children())[:-2])  # up to last conv
+            self.pool = nn.AdaptiveAvgPool2d((1, 1))
             for param in self.spatial_model.parameters():
                 param.requires_grad = False
             if unfreeze_layer > 0:
-                blocks = [self.spatial_model[-2][i] for i in range(-unfreeze_layer, 0)]
-                for block in blocks:
-                    for param in block.parameters():
+                layers_to_unfreeze = list(self.spatial_model.children())[-unfreeze_layer:]
+                for layer in layers_to_unfreeze:
+                    for param in layer.parameters():
                         param.requires_grad = True
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         '''
         x: tensor of shape (B,C,H,W)
         return: tensor of shape (F,d)
         '''
-        B,C, H, W = x.shape
-        output = self.spatial_model(x)
-        output = self.pool(output)
+        output = self.spatial_model(x) # (B, 2048, H', W')
+        output = self.pool(output) # (B, 2048, 1, 1)
         return output.flatten(1) # (B, d)
         
         
