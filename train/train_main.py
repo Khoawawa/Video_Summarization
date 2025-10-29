@@ -49,4 +49,19 @@ def train_main(args):
                 )    
     
     test_model(model=model, test_loader=loaders['test'], args=args)
+
+def test_main(args):
+    with open(f"{args.absPath}/utils/data_config.json", "r") as f:
+        args.data_config = json.load(f)[args.dataset]
+    loaders = load_image_loaders(args.data_config['csv_path'], args, mode=args.data_mode)
     
+    model : torch.nn.Module = create_model(args)
+    
+    model_dir = f"{args.absPath}/data/save_models/{args.model}_{args.dataset}"
+    args.model_dir = model_dir
+    model  = model.to(args.device)
+    
+    final_model = torch.load(os.path.join(model_dir, "final_model.pkl"), map_location=args.device)
+    model.load_state_dict(final_model['model_state_dict'], strict=False)
+    
+    test_model(model=model, test_loader=loaders['test'], args=args)

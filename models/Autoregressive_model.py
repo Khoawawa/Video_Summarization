@@ -12,6 +12,7 @@ class AutoregressiveModel(nn.Module):
             self.input_size = self.model.config.n_embd
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
+                self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
         else:
             raise NotImplementedError(f"Backbone {backbone_name} not implemented")
         # freeze LM
@@ -28,35 +29,43 @@ class AutoregressiveModel(nn.Module):
         self.prefix_mlp = nn.Sequential(*layers)
     def __generate_caption(self, prefix_embs, max_length):
         B = prefix_embs.shape[0]
-        generated = torch.full((B,1), self.tokenizer.bos_token_id, device=prefix_embs.device)
+        generated = torch.full((B,1), self.tokenizer.bos_token_id, dtype=torch.long,device=prefix_embs.device)
+        past_key_values = None
         # autoregressively generate caption
         for _ in range(max_length):
-            caption_embs = self.model.transformer.wte(generated)
-            input_embs = torch.cat([prefix_embs, caption_embs], dim=1)
-            outputs = self.model(inputs_embeds=input_embs)
+            caption_embs = self.model.transformer.wte(generated) # (B,T,D)
+            input_embs = torch.cat([prefix_embs, caption_embs], dim=1) # (B, 1 + T, D)
+            outputs = self.model(
+                inputs_embeds=input_embs,
+                past_key_values=past_key_values,
+                use_cache=True
+            )
             next_token = torch.argmax(outputs.logits[:, -1, :], dim=-1, keepdim=True)
             generated = torch.cat([generated, next_token], dim=1)
+            past_key_values = outputs.past_key_values
+            
             if torch.all(next_token == self.tokenizer.eos_token_id):
                 break;
+            
         return self.tokenizer.batch_decode(generated[:, 1:], skip_special_tokens=True)
     def forward(self,x_visual, captions=None):
-        # x_visual: [B, d_visual]        
+        # x_visual: [B, d_visual]    
+        B = x_visual.shape[0]    
         prefix_embs = self.prefix_mlp(x_visual) # [B, gpt2_emb]
         prefix_embs = prefix_embs.unsqueeze(1) # [B, 1, gpt2_emb]
         
         if captions is not None:
             # training
-            caption_ids = self.tokenizer(captions, return_tensors="pt", padding=True, truncation=True)
-            caption_ids = caption_ids["input_ids"].to(x_visual.device)
+            caption_ids = self.tokenizer(captions, return_tensors="pt", padding=True, truncation=True, max_length=50).to(x_visual.device)
+            caption_ids = caption_ids["input_ids"]
             captions_embs = self.model.transformer.wte(caption_ids) # [B, T, gpt2_emb]
             
             inputs_embs = torch.cat([prefix_embs, captions_embs], dim=1) # [B, T+1, gpt2_emb]
-            # padding for labels
-            B, T = caption_ids.shape
-            pad_token_id = self.tokenizer.pad_token_id or self.tokenizer.eos_token_id
-            prefix_padding = torch.full((B, 1), pad_token_id, dtype=torch.long, device=x_visual.device)
-            labels = torch.cat([prefix_padding, caption_ids], dim=1) # [B, T+1]
-            
+            labels = caption_ids.clone()
+            labels = torch.cat([
+                torch.full((B, 1), self.tokenizer.pad_token_id, device=x_visual.device, dtype=torch.long),
+                labels
+            ], dim=1)
             out = self.model(inputs_embeds=inputs_embs, labels=labels) # [B, T+1, vocab_size]
             return out.loss
         else:
