@@ -29,29 +29,51 @@ class AutoregressiveModel(nn.Module):
         self.prefix_mlp = nn.Sequential(*layers)
     def __generate_caption(self, prefix_embs, max_length):
         B = prefix_embs.shape[0]
-        generated = torch.full((B,1), self.tokenizer.bos_token_id, dtype=torch.long,device=prefix_embs.device)
-        past_key_values = None
-        # autoregressively generate caption
-        for _ in range(max_length):
-            caption_embs = self.model.transformer.wte(generated) # (B,T,D)
-            caption_embs = torch.nan_to_num(caption_embs, nan=0.0, posinf=0.0, neginf=0.0)
-            caption_embs = caption_embs.clamp(min=-100, max=100)
-            
-            input_embs = torch.cat([prefix_embs, caption_embs], dim=1) # (B, 1 + T, D)
+        device = prefix_embs.device
+        vocab_size = self.model.config.vocab_size
+
+        # 1. Start with BOS
+        generated = torch.full((B, 1), self.tokenizer.bos_token_id, dtype=torch.long, device=device)
+        caption_embs = self.model.transformer.wte(generated)  # (B, 1, D)
+
+        # 2. FIRST STEP: Include prefix
+        input_embs = torch.cat([prefix_embs, caption_embs], dim=1)  # (B, 1+1, D)
+
+        outputs = self.model(
+            inputs_embeds=input_embs,
+            past_key_values=None,
+            use_cache=True,
+        )
+
+        past_key_values = outputs.past_key_values  # Includes prefix KV
+
+        # 3. Predict first token
+        next_token = torch.argmax(outputs.logits[:, -1, :], dim=-1, keepdim=True)
+        next_token = next_token.clamp(min=0, max=vocab_size - 1)
+        generated = torch.cat([generated, next_token], dim=1)
+
+        if torch.all(next_token == self.tokenizer.eos_token_id):
+            return self.tokenizer.batch_decode(generated[:, 1:], skip_special_tokens=True)
+
+        # 4. SUBSEQUENT STEPS: Text only + reuse cache
+        for _ in range(1, max_length):
+            # Only feed the generated text tokens
+            text_embs = self.model.transformer.wte(generated)
+
             outputs = self.model(
-                inputs_embeds=input_embs,
+                inputs_embeds=text_embs,
                 past_key_values=past_key_values,
-                use_cache=True
+                use_cache=True,
             )
+
             next_token = torch.argmax(outputs.logits[:, -1, :], dim=-1, keepdim=True)
-            next_token = next_token.clamp(0, self.model.config.vocab_size - 1)
-            
+            next_token = next_token.clamp(min=0, max=vocab_size - 1)
             generated = torch.cat([generated, next_token], dim=1)
             past_key_values = outputs.past_key_values
-            
+
             if torch.all(next_token == self.tokenizer.eos_token_id):
-                break;
-            
+                break
+
         return self.tokenizer.batch_decode(generated[:, 1:], skip_special_tokens=True)
     def forward(self,x_visual, captions=None):
         # x_visual: [B, d_visual]    
