@@ -1,5 +1,7 @@
 {
-    "MSRVTT":{
-        "data_dir": "data/MSRVTT"
+    "flickr":{
+        "img_dir": "data/flickr30k_images/flickr30k_images",
+        "csv_path": "data/flickr30k_images/result.csv",
+        "batch_size": 32
     }
 }

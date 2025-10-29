@@ -10,7 +10,54 @@ import os
 import cv2
 
 csv_file = '../Video_Summarization/preprocessing/video_and_keyframe_path.csv'
-
+transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+class ImageDataset(Dataset):
+    def __init__(self, df, img_dir, transform=None):
+        self.df = pd.read_csv(df)
+        self.transform = transform
+        self.img_dir = img_dir
+    def __len__(self):
+        return len(self.df)
+    def __getitem__(self, index):
+        row = self.df.iloc[index]
+        image_path = os.path.join(self.img_dir, row['image_name'])
+        caption = row['comment']
+        image = Image.open(image_path).convert('RGB')
+        if self.transform:
+            image = self.transform(image)
+        return image, caption
+def load_image_loaders(csv_path, args, mode='train'):
+    global transform
+    dataset = ImageDataset(csv_path,args.img_dir, transform)
+    def split_dataset(dataset, train_ratio=0.7, val_ratio=0.15, seed=42):
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        
+        total = len(dataset)
+        train_size = int(train_ratio * total)
+        val_size = int(val_ratio * total)
+        test_size = total - train_size - val_size
+        
+        train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, val_size, test_size],generator=torch.Generator().manual_seed(seed))
+        
+        return train_dataset, val_dataset, test_dataset
+    loaders = {}
+    phases = ['train', 'val', 'test'] if mode != "test" else ['test']
+    train_dataset, val_dataset, test_dataset = split_dataset(dataset)
+    for phase in phases:
+        if phase == 'train':
+            loaders[phase] = DataLoader(train_dataset, batch_size=args.data_config['batch_size'], shuffle=True)
+        elif phase == 'val':
+            loaders[phase] = DataLoader(val_dataset, batch_size=args.data_config['batch_size'], shuffle=False)
+        else:
+            loaders[phase] = DataLoader(test_dataset, batch_size=args.data_config['batch_size'], shuffle=False)
+    return loaders
+    
 class KeyframeDataset(Dataset):
     def __init__(self, csv_file, transform=None):
         if isinstance(csv_file, str):
