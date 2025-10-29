@@ -34,6 +34,9 @@ class AutoregressiveModel(nn.Module):
         # autoregressively generate caption
         for _ in range(max_length):
             caption_embs = self.model.transformer.wte(generated) # (B,T,D)
+            caption_embs = torch.nan_to_num(caption_embs, nan=0.0, posinf=0.0, neginf=0.0)
+            caption_embs = caption_embs.clamp(min=-100, max=100)
+            
             input_embs = torch.cat([prefix_embs, caption_embs], dim=1) # (B, 1 + T, D)
             outputs = self.model(
                 inputs_embeds=input_embs,
