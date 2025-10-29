@@ -55,7 +55,8 @@ class AutoregressiveModel(nn.Module):
         B = x_visual.shape[0]    
         prefix_embs = self.prefix_mlp(x_visual) # [B, gpt2_emb]
         prefix_embs = prefix_embs.unsqueeze(1) # [B, 1, gpt2_emb]
-        
+        prefix_embs = torch.nan_to_num(prefix_embs, nan=0.0, posinf=0.0, neginf=0.0)
+        prefix_embs = prefix_embs.clamp(min=-10, max=10)
         if captions is not None:
             # training
             caption_ids = self.tokenizer(captions, return_tensors="pt", padding=True, truncation=True, max_length=50).to(x_visual.device)
