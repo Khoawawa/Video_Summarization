@@ -17,8 +17,8 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 class ImageDataset(Dataset):
-    def __init__(self, df, img_dir, transform=None):
-        self.df = pd.read_csv(df)
+    def __init__(self, csv_path, img_dir, transform=None):
+        self.df = pd.read_csv(csv_path, sep="|")
         self.transform = transform
         self.img_dir = img_dir
     def __len__(self):
