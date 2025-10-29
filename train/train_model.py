@@ -39,6 +39,7 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
             tqdm_train_loader.set_description(
                 f"Train epoch: {epoch}, train loss: {(running_loss / steps) : .8f}"
             )
+            torch.cuda.empty_cache()
         train_time = time.perf_counter() - start_time
         # logging train loss
         with open(model_dir + "/output.txt", "a") as f:
