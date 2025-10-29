@@ -66,31 +66,79 @@ class AutoregressiveModel(nn.Module):
                 break
 
         return self.tokenizer.batch_decode(generated[:, 1:], skip_special_tokens=True)
-    def forward(self,x_visual, captions=None):
-        # x_visual: [B, d_visual]    
-        B = x_visual.shape[0]    
-        
-        prefix_embs = self.prefix_mlp(x_visual) # [B, gpt2_emb]
-        prefix_embs = torch.nan_to_num(prefix_embs, nan=0.0, posinf=0.0, neginf=0.0)
-        prefix_embs = prefix_embs.clamp(min=-10, max=10)
-        prefix_embs = prefix_embs.unsqueeze(1) # [B, 1, gpt2_emb]
+    def forward(self, x_visual, captions=None, max_length=50):
+        """
+        x_visual : Tensor[B, d_visual]
+        captions : None (inference) or list[str] (training)
+        """
+        B = x_visual.shape[0]
+
+        # ----- visual → prefix token (B,1,D) -----
+        prefix_embs = self.prefix_mlp(x_visual)          # (B, D)
+        prefix_embs = torch.clamp(prefix_embs, -10, 10)   # keep values sane
+        prefix_embs = prefix_embs.unsqueeze(1)           # (B,1,D)
+
+        # ------------------------------------------------------------------
+        #  TRAINING (teacher-forcing)
+        # ------------------------------------------------------------------
         if captions is not None:
-            # training
-            caption_ids = self.tokenizer(captions, return_tensors="pt", padding=True, truncation=True, max_length=50).to(x_visual.device)
-            caption_ids = caption_ids["input_ids"]
-            captions_embs = self.model.transformer.wte(caption_ids) # [B, T, gpt2_emb]
-            
-            inputs_embs = torch.cat([prefix_embs, captions_embs], dim=1) # [B, T+1, gpt2_emb]
-            labels = caption_ids.clone()
-            labels = torch.cat([
-                torch.full((B, 1), self.tokenizer.pad_token_id, device=x_visual.device, dtype=torch.long),
-                labels
-            ], dim=1)
-            out = self.model(inputs_embeds=inputs_embs, labels=labels) # [B, T+1, vocab_size]
+            # tokenise the ground-truth captions
+            enc = self.tokenizer(
+                captions,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=max_length,
+            ).to(x_visual.device)
+            caption_ids = enc["input_ids"]                 # (B, T)
+
+            # embed captions
+            caption_embs = self.model.transformer.wte(caption_ids)  # (B,T,D)
+
+            # prepend the prefix token
+            inputs_embs = torch.cat([prefix_embs, caption_embs], dim=1)  # (B,1+T,D)
+
+            # labels: ignore the prefix token (pad) and shift captions by 1
+            labels = torch.cat(
+                [
+                    torch.full((B, 1), self.tokenizer.pad_token_id,
+                               device=x_visual.device, dtype=torch.long),
+                    caption_ids,
+                ],
+                dim=1,
+            )  # (B,1+T)
+
+            out = self.model(inputs_embeds=inputs_embs, labels=labels)
             return out.loss
+
+        # ------------------------------------------------------------------
+        #  INFERENCE (greedy generation with HF generate)
+        # ------------------------------------------------------------------
         else:
-            # inference
-            return self.__generate_caption(prefix_embs, max_length=50)
+            # start with a single BOS token (the prefix will be the *first* token)
+            bos_id = self.tokenizer.bos_token_id or self.tokenizer.eos_token_id
+            start_ids = torch.full(
+                (B, 1), bos_id, dtype=torch.long, device=x_visual.device
+            )
+            start_embs = self.model.transformer.wte(start_ids)   # (B,1,D)
+
+            # **add** the visual prefix to the BOS embedding → conditioning
+            start_embs = start_embs + prefix_embs
+
+            with torch.no_grad():
+                generated_ids = self.model.generate(
+                    inputs_embeds=start_embs,
+                    max_length=max_length + 1,      # +1 because we already fed BOS
+                    do_sample=False,                # greedy
+                    pad_token_id=self.tokenizer.pad_token_id,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    use_cache=True,                 # safe – HF handles the cache
+                )
+
+            # remove the BOS token that we fed manually
+            return self.tokenizer.batch_decode(
+                generated_ids[:, 1:], skip_special_tokens=True
+            )
 
 if __name__ == '__main__':
     model = AutoregressiveModel(prefix_hidden_dim=512, backbone_name="gpt2", d_visual=2048, hidden_layers=1)
