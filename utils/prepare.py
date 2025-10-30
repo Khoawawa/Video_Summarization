@@ -18,7 +18,7 @@ transform = transforms.Compose([
 ])
 class ImageDataset(Dataset):
     def __init__(self, csv_path, img_dir, transform=None):
-        self.df = pd.read_csv(csv_path, sep="|")
+        self.df = pd.read_csv(csv_path)
         self.df.columns = self.df.columns.str.strip()
         self.transform = transform
         self.img_dir = img_dir
