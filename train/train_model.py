@@ -17,68 +17,69 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
     
     save_dict, best_cider = {'model_state_dict': copy.deepcopy(model.state_dict()), 'epoch': start_epoch}, float('-inf')
     # separating train and val is crucial
-    for epoch in range(start_epoch, start_epoch + num_epochs):
-        # training loop
-        running_loss = 0.0
-        model.train()
-        steps, preds, tgts = 0, list(), list()
-        tqdm_train_loader = tqdm(data_loaders['train'], mininterval=3)
-        for images, captions in tqdm_train_loader:
-            # images : tensor of shape (B, C, H, W)
-            # captions: list of captions
-            steps += len(captions)
-            images = images.to(args.device)
-            optimizer.zero_grad()
-            loss = model(images,captions)
-            # backpropagate
-            loss.backward()
-            optimizer.step()
-            
-            running_loss += loss.item() * len(captions)
-            
-            tqdm_train_loader.set_description(
-                f"Train epoch: {epoch}, train loss: {(running_loss / steps) : .8f}"
-            )
-            # torch.cuda.empty_cache()
-        train_time = time.perf_counter() - start_time
-        # logging train loss
-        with open(model_dir + "/output.txt", "a") as f:
-            f.write(f"Train epoch: {epoch}, train loss: {(running_loss / steps) : .8f}\n")
-            f.write(f"Train time: {train_time} seconds\n")
-            f.write("\n")
-        
-        # validation loop
-        model.eval()
-        with torch.no_grad():
-            for images, captions in tqdm(data_loaders['val'], mininterval=3,desc="Validating"):
-                # captions should be a list[str]
+    try:
+        for epoch in range(start_epoch, start_epoch + num_epochs):
+            # training loop
+            running_loss = 0.0
+            model.train()
+            steps, preds, tgts = 0, list(), list()
+            tqdm_train_loader = tqdm(data_loaders['train'], mininterval=3)
+            for images, captions in tqdm_train_loader:
+                # images : tensor of shape (B, C, H, W)
+                # captions: list of captions
+                steps += len(captions)
                 images = images.to(args.device)
-                outputs = model(images,None)
+                optimizer.zero_grad()
+                loss = model(images,captions)
+                # backpropagate
+                loss.backward()
+                optimizer.step()
                 
-                for refs, pred in zip(captions, outputs):
-                    tgts.append(refs if isinstance(refs, list) else [refs])
-                    preds.append(pred)
-            scores = calculate_metrics(preds, tgts) # this should calculate all metric we want --> BLEU, CIDER, METEOR, ....
-            val_time = time.perf_counter() - start_time 
-        # logging metrics
-        with open(model_dir + "/output.txt", "a") as f:
-            f.write(f"Val epoch: {epoch}\n") 
-            f.write(str(scores))
-            f.write("\n")
-            f.write(f"Val time: {val_time} seconds\n")
-            f.write("\n")
-        # for this part we need to save the best model in case of multiple epoch training
-        if scores['CIDEr'] > best_cider:
-            best_cider = scores['CIDEr']
-            save_dict.update(model_state_dict=copy.deepcopy(model.state_dict()), epoch=epoch,optimzer_state_dict=copy.deepcopy(optimizer.state_dict()))
-            save_model(f"{model_dir}/best_model.pkl", **save_dict)
-    
-    time_elapsed = time.perf_counter() - start_time
-    h, rem = divmod(time_elapsed, 3600)
-    m, s   = divmod(rem, 60)
-    print(f"Training complete in {h} hours {m} minutes {s} seconds")
-    
-    save_model(f"{model_dir}/final_model.pkl",
+                running_loss += loss.item() * len(captions)
+                
+                tqdm_train_loader.set_description(
+                    f"Train epoch: {epoch}, train loss: {(running_loss / steps) : .8f}"
+                )
+                # torch.cuda.empty_cache()
+            train_time = time.perf_counter() - start_time
+            # logging train loss
+            with open(model_dir + "/output.txt", "a") as f:
+                f.write(f"Train epoch: {epoch}, train loss: {(running_loss / steps) : .8f}\n")
+                f.write(f"Train time: {train_time} seconds\n")
+                f.write("\n")
+            
+            # validation loop
+            model.eval()
+            with torch.no_grad():
+                for images, captions in tqdm(data_loaders['val'], mininterval=3,desc="Validating"):
+                    # captions should be a list[str]
+                    images = images.to(args.device)
+                    outputs = model(images,None)
+                    
+                    for refs, pred in zip(captions, outputs):
+                        tgts.append(refs if isinstance(refs, list) else [refs])
+                        preds.append(pred)
+                scores = calculate_metrics(preds, tgts) # this should calculate all metric we want --> BLEU, CIDER, METEOR, ....
+                val_time = time.perf_counter() - start_time 
+            # logging metrics
+            with open(model_dir + "/output.txt", "a") as f:
+                f.write(f"Val epoch: {epoch}\n") 
+                f.write(str(scores))
+                f.write("\n")
+                f.write(f"Val time: {val_time} seconds\n")
+                f.write("\n")
+            # for this part we need to save the best model in case of multiple epoch training
+            if scores['CIDEr'] > best_cider:
+                best_cider = scores['CIDEr']
+                save_dict.update(model_state_dict=copy.deepcopy(model.state_dict()), epoch=epoch,optimzer_state_dict=copy.deepcopy(optimizer.state_dict()))
+                save_model(f"{model_dir}/best_model.pkl", **save_dict)
+    finally:
+        time_elapsed = time.perf_counter() - start_time
+        h, rem = divmod(time_elapsed, 3600)
+        m, s   = divmod(rem, 60)
+        print(f"Training complete in {h} hours {m} minutes {s} seconds")
+        
+        save_model(f"{model_dir}/final_model.pkl",
                **{
                    'model_state_dict': copy.deepcopy(model.state_dict()),
                    'epoch': epoch,
