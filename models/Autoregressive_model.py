@@ -75,12 +75,14 @@ class AutoregressiveModel(nn.Module):
             bos_id = self.tokenizer.bos_token_id
             bos_emb = self.model.transformer.wte.weight[bos_id:bos_id+1] # (1, D)
             bos_emb = bos_emb.expand(B, 1, -1)
-            start_embs = bos_emb + prefix_embs[:, :1, :] # bias first token
+            start_embs = torch.cat([bos_emb, prefix_embs], dim=1) # (B, prefix_len+1, D)
+            attention_mask = torch.ones(B, self.prefix_len+1, device=x_visual.device, dtype=torch.long)
             with torch.no_grad():
                 generated_ids = self.model.generate(
                     inputs_embeds=start_embs,
-                    max_length=max_length + 1,      # +1 because we already fed BOS
-                    do_sample=True,                # greedy
+                    max_length=max_length + 1 + self.prefix_len,      # prefix_len+1 because we already fed BOS + prefix
+                    attention_mask=attention_mask,
+                    do_sample=True,               
                     pad_token_id=self.tokenizer.pad_token_id,
                     eos_token_id=self.tokenizer.eos_token_id,
                     top_p=0.9,
