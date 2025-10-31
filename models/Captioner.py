@@ -14,11 +14,12 @@ class Captioner(nn.Module):
                  text_backbone_name="gpt2",
                  mapping_hidden_layers=1,
                  pretrained=True,
-                 unfreeze_layer=0):
+                 unfreeze_layer=0,
+                 prefix_len=10):
         super().__init__()
         self.visual_encoder = VisualEncoder(visual_backbone, pretrained, unfreeze_layer)
         d_visual = self.visual_encoder.out_dim
-        self.text_decoder = AutoregressiveModel(prefix_hidden_dim, text_backbone_name, d_visual=d_visual, hidden_layers=mapping_hidden_layers)
+        self.text_decoder = AutoregressiveModel(prefix_hidden_dim, text_backbone_name, prefix_len=prefix_len, d_visual=d_visual, hidden_layers=mapping_hidden_layers)
     
     def forward(self, images, captions=None):
         '''

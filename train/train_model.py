@@ -1,3 +1,4 @@
+import os
 import torch
 from torch import nn, optim
 import time
@@ -5,6 +6,7 @@ import copy
 from tqdm import tqdm
 from utils.util import save_model
 from utils.metric import calculate_metrics
+import json
 def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataLoader], 
                 optimizer: optim.Optimizer, 
                 model_dir: str, args, start_epoch: int = 0):
@@ -89,8 +91,10 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
 def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args):
     model.eval()
     preds, tgts = list(), list()
+    result_dir = f"{args.absPath}/data/save_models/{args.model}_{args.dataset}"
+    os.makedirs(result_dir, exist_ok=True)
+    pred_file = f"{result_dir}/predictions.jsonl"
     with torch.no_grad():
-        
         for images, captions in tqdm(test_loader, mininterval=3, desc="Testing..."):
             images = images.to(args.device)
             outputs = model(images, None)
@@ -99,6 +103,21 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
                 preds.append(pred)
     metric = calculate_metrics(preds, tgts)
     print(metric)
+    with open(result_dir + "/output.txt", "a") as f:
+        f.write(f"Test\n") 
+        f.write(str(metric))
+        f.write("\n")
+        f.write("\n")
+    # prediction append
+    with open(pred_file, 'w', encoding='utf-8') as f:
+        for i, (pred, refs) in enumerate(zip(preds, tgts)):
+            entry = {
+                "id": i,
+                "prediction": pred,
+                "references": refs
+            }
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    
     with open(f'{args.absPath}/data/result_{args.model}.txt', 'a') as f:
         f.write(time.strftime("%m/%d %H:%M:%S", time.localtime(time.time())))
         f.write(f"epoch: {args.epochs}, lr: {args.lr}\n dataset: {args.dataset}\n")

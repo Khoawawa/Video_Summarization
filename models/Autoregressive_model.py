@@ -57,12 +57,18 @@ class AutoregressiveModel(nn.Module):
 
             # prepend the prefix token
             inputs_embs = torch.cat([prefix_embs, caption_embs], dim=1)  # (B,prefix_len+T,D)
+            # attention mask
+            attention_mask = enc.attention_mask  # [B, T] — 1 cho real, 0 cho pad
 
+            # Full mask
+            prefix_mask = torch.ones(B, self.prefix_len, device=x_visual.device, dtype=torch.long)
+            full_attention_mask = torch.cat([prefix_mask, attention_mask], dim=1)
+            
             # labels: ignore the prefix token (pad) and shift captions by 1
             labels = torch.full((B, self.prefix_len), -100, device=x_visual.device, dtype=torch.long)
             labels = torch.cat([labels, caption_ids], dim=1)  # [B, prefix_len + T]
 
-            out = self.model(inputs_embeds=inputs_embs, labels=labels)
+            out = self.model(inputs_embeds=inputs_embs, labels=labels, attention_mask=full_attention_mask)
             return out.loss
         else:
             # start with a single BOS token (the prefix will be the *first* token)
