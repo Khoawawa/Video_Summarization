@@ -91,7 +91,7 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
 def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args):
     model.eval()
     preds, tgts = list(), list()
-    result_dir = f"{args.absPath}/data/save_models/{args.model}_{args.dataset}"
+    result_dir = args.data_config['out_dir']
     os.makedirs(result_dir, exist_ok=True)
     pred_file = f"{result_dir}/predictions.jsonl"
     with torch.no_grad():

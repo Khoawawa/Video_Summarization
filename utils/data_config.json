@@ -3,6 +3,7 @@
         "data_dir": "data",
         "img_dir": "flickr30k_images",
         "csv_path": "results.csv",
-        "batch_size": 32
+        "batch_size": 32,
+        "out_dir": ""
     }
 }

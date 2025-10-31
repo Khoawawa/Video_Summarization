@@ -17,7 +17,7 @@ def train_main(args):
     
     model : torch.nn.Module = create_model(args)
     
-    model_dir = f"{args.absPath}/data/save_models/{args.model}_{args.dataset}"
+    model_dir = args.data_config['out_dir']
     args.model_dir = model_dir
     model  = model.to(args.device)
     # create optimizer
@@ -63,7 +63,7 @@ def test_main(args):
     
     model : torch.nn.Module = create_model(args)
     
-    model_dir = f"{args.absPath}/data/save_models/{args.model}_{args.dataset}"
+    model_dir = args.data_config['out_dir']
     args.model_dir = model_dir
     model  = model.to(args.device)
     
