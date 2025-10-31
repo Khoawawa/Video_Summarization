@@ -32,11 +32,11 @@ def train_main(args):
     else:
         raise NotImplementedError(f"Optimizer {args.optim} not implemented")
 
-    if args.model == "train":
+    if args.mode == "train":
         if os.path.exists(model_dir):
             shutil.rmtree(model_dir, ignore_errors=True)
         os.makedirs(model_dir, exist_ok=True)
-    elif args.model == "resume":
+    elif args.mode == "resume":
         # load model checkpoint
         final_model = torch.load(os.path.join(model_dir, "final_model.pkl"), map_location=args.device)
         model.load_state_dict(final_model['model_state_dict'], strict=False)
