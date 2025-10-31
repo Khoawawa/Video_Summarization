@@ -117,17 +117,4 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
                 "references": refs
             }
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    
-    with open(f'{args.absPath}/data/result_{args.model}.txt', 'a') as f:
-        f.write(time.strftime("%m/%d %H:%M:%S", time.localtime(time.time())))
-        f.write(f"epoch: {args.epochs}, lr: {args.lr}\n dataset: {args.dataset}\n")
-        f.write(str(metric))
-        f.write("\n\n")
-    with open(f'{args.absPath}/data/prediction_{args.model}.txt', 'a') as f:
-        f.write(time.strftime("%m/%d %H:%M:%S", time.localtime(time.time())))
-        f.write(f"epoch: {args.epochs}, lr: {args.lr}\n dataset: {args.dataset}\n")
-        f.write(str(preds))
-        f.write("\n")
-        f.write(str(tgts))
-        f.write("\n\n")
         
