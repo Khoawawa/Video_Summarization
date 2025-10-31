@@ -92,7 +92,7 @@ class AutoregressiveModel(nn.Module):
 
             # remove the BOS token that we fed manually
             return self.tokenizer.batch_decode(
-                generated_ids[:, 1:], skip_special_tokens=True
+                generated_ids[:, self.prefix_len+1:], skip_special_tokens=True
             )
 
 if __name__ == '__main__':
