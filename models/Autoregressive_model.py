@@ -67,7 +67,7 @@ class AutoregressiveModel(nn.Module):
         else:
             # start with a single BOS token (the prefix will be the *first* token)
             bos_id = self.tokenizer.bos_token_id
-            bos_emb = self.model.wte.weight[bos_id:bos_id+1] # (1, D)
+            bos_emb = self.model.transformer.wte.weight[bos_id:bos_id+1] # (1, D)
             bos_emb = bos_emb.expand(B, 1, -1)
             start_embs = bos_emb + prefix_embs[:, :1, :] # bias first token
             with torch.no_grad():
