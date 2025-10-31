@@ -11,6 +11,8 @@ def train_main(args):
     # push data_config to args
     with open(f"{args.absPath}/utils/data_config.json", "r") as f:
         args.data_config = json.load(f)[args.dataset]
+    with open(f"{args.absPath}/utils/lr_config.json", "r") as f:
+        args.lr_config = json.load(f)[args.model]
     loaders = load_image_loaders(args.data_config['csv_path'], args, mode=args.data_mode)
     
     model : torch.nn.Module = create_model(args)
@@ -19,10 +21,14 @@ def train_main(args):
     args.model_dir = model_dir
     model  = model.to(args.device)
     # create optimizer
+    lr_list = [
+        {"params": model.visual_encoder.spatial_model.parameters(), "lr": args.lr_config["resnet_lr"]},
+        {"params": model.text_decoder.prefix_mlp.parameters(), "lr": args.lr_config["mlp_lr"]}
+    ]
     if args.optim.lower() == "adam":
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        optimizer = torch.optim.Adam(lr_list)
     elif args.optim.lower() == "adamw":
-        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
+        optimizer = torch.optim.AdamW(lr_list)
     else:
         raise NotImplementedError(f"Optimizer {args.optim} not implemented")
 
