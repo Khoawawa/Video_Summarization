@@ -16,8 +16,6 @@ def calculate_metrics(preds, tgts):
     # BLEU (1-4)
     bleu_scorer = Bleu(4)
     bleu_score, _ = bleu_scorer.compute_score(gts, res)
-    # METEOR
-    meteor_scorer = Meteor()
     # CIDEr
     cider_scorer = Cider()
     cider_score, _ = cider_scorer.compute_score(gts, res)
