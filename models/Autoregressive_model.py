@@ -28,7 +28,7 @@ class AutoregressiveModel(nn.Module):
             layers.append(nn.Linear(in_dim, prefix_hidden_dim))
             layers.append(nn.ReLU())
             in_dim = prefix_hidden_dim
-        layers.append(nn.Linear(prefix_hidden_dim, self.input_size))
+        layers.append(nn.Linear(prefix_hidden_dim, prefix_len * self.input_size))
         self.prefix_mlp = nn.Sequential(*layers)
     def prefix_projection(self, x):
         prefix_embs = self.prefix_mlp(x)
