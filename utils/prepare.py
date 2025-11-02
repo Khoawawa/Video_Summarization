@@ -33,11 +33,12 @@ class ImageDataset(Dataset):
         ]
         
     def pad_token(self, caption_tokens):
+        tokens = caption_tokens
         padding = self.max_seq_len - caption_tokens.shape[0]
         if padding > 0:
-            tokens = torch.cat((caption_tokens, torch.zeros(padding, dtype=torch.long) - 1))
+            tokens = torch.cat((tokens, torch.zeros(padding, dtype=torch.long) - 1))
         elif padding < 0:
-            tokens = caption_tokens[:self.max_seq_len]
+            tokens = tokens[:self.max_seq_len]
         mask = tokens.ge(0)
         tokens[~mask] = 0 # mask out padding
         # creating the attention mask including the prefix
