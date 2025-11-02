@@ -15,5 +15,16 @@
         "prefix_len": 20,
         "beam_size": 5,
         "temperature": 1.0
+    },
+    "Captioner_gpt2_resnet_v2": {
+        "visual_backbone": "resnet50",
+        "prefix_hidden_dim": 512,
+        "text_backbone_name": "gpt2",
+        "mapping_hidden_layers": 2,
+        "pretrained": true,
+        "unfreeze_layer": 2,
+        "prefix_len": 20,
+        "beam_size": 5,
+        "temperature": 1.0
     }
 }
