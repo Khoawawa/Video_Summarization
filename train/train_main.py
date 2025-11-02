@@ -38,6 +38,7 @@ def train_main(args):
         if os.path.exists(model_dir):
             shutil.rmtree(model_dir, ignore_errors=True)
         os.makedirs(model_dir, exist_ok=True)
+        start_epoch = 0
     elif args.mode == "resume":
         # load model checkpoint
         final_model = torch.load(os.path.join(model_dir, "final_model.pkl"), map_location=args.device)
@@ -53,7 +54,7 @@ def train_main(args):
         optimizer=optimizer,
         model_dir=model_dir,
         args=args,
-        start_epoch=start_epoch if args.model == "resume" else 0
+        start_epoch=start_epoch if args.mode == "resume" else 0
                 )    
     
     test_model(model=model, test_loader=loaders['test'], args=args)
