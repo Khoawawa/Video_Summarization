@@ -98,7 +98,7 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
         save_model(f"{model_dir}/final_model.pkl",
                **{
                    'model_state_dict': copy.deepcopy(model.state_dict()),
-                   'epoch': epoch,
+                   'epoch': start_epoch + num_epochs,
                    'optimizer_state_dict': copy.deepcopy(optimizer.state_dict())
                })
                     

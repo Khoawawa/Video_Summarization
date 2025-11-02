@@ -23,7 +23,7 @@
         "mapping_hidden_layers": 2,
         "pretrained": true,
         "unfreeze_layer": 2,
-        "prefix_len": 20,
+        "prefix_len": 10,
         "beam_size": 3,
         "temperature": 1.0,
         "max_length": 15
