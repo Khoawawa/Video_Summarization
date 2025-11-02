@@ -61,9 +61,10 @@ def train_main(args):
 def test_main(args):
     with open(f"{args.absPath}/utils/data_config.json", "r") as f:
         args.data_config = json.load(f)[args.dataset]
-    loaders = load_image_loaders(args.data_config['csv_path'], args, mode=args.data_mode)
     
     model : torch.nn.Module = create_model(args)
+    
+    loaders = load_image_loaders(args.data_config['csv_path'], args, args.model_config['prefix_len'],mode=args.data_mode)
     
     model_dir = args.data_config['out_dir']
     args.model_dir = model_dir
