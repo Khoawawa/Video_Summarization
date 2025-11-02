@@ -136,7 +136,7 @@ class AutoregressiveModel(nn.Module):
                     eos_token_id=self.stop_token_idx,
                     pad_token_id=self.tokenizer.eos_token_id,
                 )
-                return self.tokenizer.batch_decode(output, skip_special_tokens=True)
+                return self.tokenizer.batch_decode(output[:, self.prefix_len:], skip_special_tokens=True)
             
 
 if __name__ == '__main__':
