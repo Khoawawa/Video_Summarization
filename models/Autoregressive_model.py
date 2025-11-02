@@ -129,14 +129,14 @@ class AutoregressiveModel(nn.Module):
             else:
                 output = self.model.generate(
                     inputs_embeds=prefix_embs,
-                    max_length=self.max_length + self.prefix_len,
+                    max_length=self.max_length,
                     num_beams=self.beam_size,
                     temperature=self.temperature,
                     early_stopping=True,
-                    eos_token_id=self.stop_token_idx,
+                    eos_token_id=self.tokenizer.eos_token_id,
                     pad_token_id=self.tokenizer.eos_token_id,
                 )
-                return self.tokenizer.batch_decode(output[:, self.prefix_len:], skip_special_tokens=True)
+                return self.tokenizer.batch_decode(output, skip_special_tokens=True)
             
 
 if __name__ == '__main__':
