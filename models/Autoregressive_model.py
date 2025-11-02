@@ -130,7 +130,7 @@ class AutoregressiveModel(nn.Module):
             else:
                 output = self.model.generate(
                     inputs_embeds=prefix_embs,
-                    max_length=self.max_length,
+                    max_length=self.max_length + self.prefix_len,
                     num_beams=self.beam_size,
                     temperature=self.temperature,
                     early_stopping=True,
