@@ -50,7 +50,7 @@ class AutoregressiveModel(nn.Module):
             # prepend the prefix token
             inputs_embs = torch.cat([prefix_embs, caption_embs], dim=1)  # (B,prefix_len+T,D)
             # crafting the labels
-            prefix_dummy_token = torch.zeros(B, self.prefix_len, device=x_visual.device, dtype=torch.int64)
+            prefix_dummy_token = torch.zeros(B, self.prefix_len, device=x_visual.device, dtype=torch.long)
             labels = torch.cat([prefix_dummy_token, labels], dim=1) # (B, prefix_len+T)
             
             out = self.model(inputs_embeds=inputs_embs, labels=labels, attention_mask=mask)

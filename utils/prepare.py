@@ -28,7 +28,7 @@ class ImageDataset(Dataset):
         self.img_dir = img_dir
         #caption goes here
         self.caption_tokens = [
-            torch.tensor(self.tokenizer.encode(caption), dtype=torch.int64)
+            torch.tensor(self.tokenizer.encode(caption), dtype=torch.long)
             for caption in self.df['comment']
         ]
         
