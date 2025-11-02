@@ -111,6 +111,7 @@ class AutoregressiveModel(nn.Module):
         """
         B = x_visual.shape[0]
         prefix_embs = self.prefix_projection(x_visual) # (B, prefix_len, D)
+        assert prefix_embs.shape == (B, self.prefix_len, self.model.config.n_embd)
         if caption_tokens is not None:
             # get embeddings of captions token
             caption_embs = self.model.transformer.wte(caption_tokens) # (B, T, D)
