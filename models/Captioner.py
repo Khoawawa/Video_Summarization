@@ -24,13 +24,13 @@ class Captioner(nn.Module):
         d_visual = self.visual_encoder.out_dim
         self.text_decoder = AutoregressiveModel(prefix_hidden_dim, backbone_name=text_backbone_name,max_length=max_length, prefix_len=prefix_len, d_visual=d_visual, hidden_layers=mapping_hidden_layers, beam_size=beam_size, temperature=temperature)
     
-    def forward(self, images, caption_tokens=None, mask=None, max_length=50):
+    def forward(self, images, caption_tokens=None, mask=None):
         '''
         images: tensor of shape (B,C,H,W)
         captions: tensor of shape (B,T) or None
         '''
         visual_feats = self.visual_encoder(images) # [B, d_visual]
-        return self.text_decoder(visual_feats, caption_tokens, mask, max_length)
+        return self.text_decoder(visual_feats, caption_tokens, mask)
     
 if __name__ == '__main__':
     model = Captioner()
