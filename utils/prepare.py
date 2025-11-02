@@ -59,7 +59,7 @@ def load_image_loaders(csv_path, args, prefix_len:int,mode='train'):
     global transform
     true_csv_path = os.path.join(args.data_config['data_dir'], csv_path)
     true_img_dir = os.path.join(args.data_config['data_dir'], args.data_config['img_dir'])
-    dataset = ImageDataset(true_csv_path, true_img_dir,prefix_len, transform)
+    dataset = ImageDataset(csv_path=true_csv_path, img_dir=true_img_dir,prefix_len=prefix_len, transform=transform)
     def split_dataset(dataset, train_ratio=0.7, val_ratio=0.15, seed=42):
         torch.manual_seed(seed)
         np.random.seed(seed)
