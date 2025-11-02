@@ -127,7 +127,7 @@ class AutoregressiveModel(nn.Module):
             if custom_beam:
                 return self.beam_search(generated,beam_size=self.beam_size,batch_size=B, max_length=self.max_length,device=x_visual.device)
             else:
-                return self.model.generate(
+                output = self.model.generate(
                     inputs_embeds=prefix_embs,
                     max_length=self.max_length + self.prefix_len,
                     num_beams=self.beam_size,
@@ -136,6 +136,7 @@ class AutoregressiveModel(nn.Module):
                     eos_token_id=self.stop_token_idx,
                     pad_token_id=self.tokenizer.eos_token_id,
                 )
+                return self.tokenizer.batch_decode(output, skip_special_tokens=True)
             
 
 if __name__ == '__main__':
