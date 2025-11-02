@@ -17,11 +17,12 @@ class Captioner(nn.Module):
                  unfreeze_layer=0,
                  prefix_len=10,
                  beam_size=5,
-                 temperature=1.0):
+                 temperature=1.0,
+                 max_length=20):
         super().__init__()
         self.visual_encoder = VisualEncoder(visual_backbone, pretrained, unfreeze_layer)
         d_visual = self.visual_encoder.out_dim
-        self.text_decoder = AutoregressiveModel(prefix_hidden_dim, text_backbone_name, prefix_len=prefix_len, d_visual=d_visual, hidden_layers=mapping_hidden_layers, beam_size=beam_size, temperature=temperature)
+        self.text_decoder = AutoregressiveModel(prefix_hidden_dim, backbone_name=text_backbone_name,max_length=max_length, prefix_len=prefix_len, d_visual=d_visual, hidden_layers=mapping_hidden_layers, beam_size=beam_size, temperature=temperature)
     
     def forward(self, images, caption_tokens=None, mask=None, max_length=50):
         '''
