@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 custom_beam = False
 class AutoregressiveModel(nn.Module):
-    def __init__(self, prefix_hidden_dim, backbone_name="gpt2",prefix_len=10, d_visual=2048, hidden_layers=1, stop_token='.',beam_size=5, temperature=1.0):
+    def __init__(self, prefix_hidden_dim, max_length=20,backbone_name="gpt2",prefix_len=10, d_visual=2048, hidden_layers=1, stop_token='.',beam_size=5, temperature=1.0):
         super().__init__()
         # language model
         if backbone_name == "gpt2":
@@ -34,6 +34,9 @@ class AutoregressiveModel(nn.Module):
         self.temperature = temperature
         # beam size
         self.beam_size = beam_size
+        # max length
+        self.max_length = max_length
+        
     def prefix_projection(self, x):
         prefix_embs = self.prefix_mlp(x)
         prefix = prefix_embs.view(-1, self.prefix_len, self.model.config.n_embd) # (B, prefix_len, D)
@@ -101,7 +104,7 @@ class AutoregressiveModel(nn.Module):
         return output_texts # list[str] * B
                 
                 
-    def forward(self, x_visual, caption_tokens=None,mask=None, max_length=50):
+    def forward(self, x_visual, caption_tokens=None,mask=None):
         """
         x_visual : Tensor[B, d_visual]
         captions : None (inference) or list[str] (training)
@@ -122,11 +125,11 @@ class AutoregressiveModel(nn.Module):
         else:
             generated = prefix_embs.unsqueeze(1).repeat(1, self.beam_size, 1, 1) # (B, beam_size, prefix_len, D)
             if custom_beam:
-                return self.beam_search(generated,beam_size=self.beam_size,batch_size=B, max_length=max_length,device=x_visual.device)
+                return self.beam_search(generated,beam_size=self.beam_size,batch_size=B, max_length=self.max_length,device=x_visual.device)
             else:
                 return self.model.generate(
                     inputs_embeds=prefix_embs,
-                    max_length=max_length + self.prefix_len,
+                    max_length=self.max_length + self.prefix_len,
                     num_beams=self.beam_size,
                     temperature=self.temperature,
                     early_stopping=True,
