@@ -17,7 +17,7 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
     with open(model_dir + "/output.txt", "a") as f:
         f.write(str(model))
         f.write(f"\n\n")
-    tokenizer = data_loaders['train'].dataset.tokenizer
+    tokenizer = data_loaders['train'].dataset.dataset.tokenizer
     save_dict, best_cider = {'model_state_dict': copy.deepcopy(model.state_dict()), 'epoch': start_epoch}, float('-inf')
     # separating train and val is crucial
     try:
@@ -108,7 +108,7 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
     pred_file = f"{result_dir}/predictions.jsonl"
     
     model.eval()
-    tokenizer = test_loader.dataset.tokenizer
+    tokenizer = test_loader.dataset.dataset.tokenizer
     preds, tgts = [], []
     with torch.no_grad():
         for images, caption_tokens, _ in tqdm(test_loader, mininterval=3,desc="Validating"):
