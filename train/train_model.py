@@ -32,7 +32,7 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
                 # captions_token: tensor of shape (B, T, D)
                 # mask: tensor of shape (B, prefix_len + T)
                 model.zero_grad()
-                steps += len(caption_tokens.shape[0])
+                steps += caption_tokens.shape[0]
                 
                 images = images.to(args.device)
                 caption_tokens = caption_tokens.to(args.device)
