@@ -15,19 +15,21 @@ class Captioner(nn.Module):
                  mapping_hidden_layers=1,
                  pretrained=True,
                  unfreeze_layer=0,
-                 prefix_len=10):
+                 prefix_len=10,
+                 beam_size=5,
+                 temperature=1.0):
         super().__init__()
         self.visual_encoder = VisualEncoder(visual_backbone, pretrained, unfreeze_layer)
         d_visual = self.visual_encoder.out_dim
-        self.text_decoder = AutoregressiveModel(prefix_hidden_dim, text_backbone_name, prefix_len=prefix_len, d_visual=d_visual, hidden_layers=mapping_hidden_layers)
+        self.text_decoder = AutoregressiveModel(prefix_hidden_dim, text_backbone_name, prefix_len=prefix_len, d_visual=d_visual, hidden_layers=mapping_hidden_layers, beam_size=beam_size, temperature=temperature)
     
-    def forward(self, images, captions=None):
+    def forward(self, images, caption_tokens=None, mask=None, max_length=50):
         '''
         images: tensor of shape (B,C,H,W)
         captions: tensor of shape (B,T) or None
         '''
         visual_feats = self.visual_encoder(images) # [B, d_visual]
-        return self.text_decoder(visual_feats, captions) # loss / caption
+        return self.text_decoder(visual_feats, caption_tokens, mask, max_length)
     
 if __name__ == '__main__':
     model = Captioner()

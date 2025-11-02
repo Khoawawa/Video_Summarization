@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
+from transformers import GPT2Tokenizer
 from sklearn.model_selection import train_test_split
 import numpy as np
 from torchvision import transforms
@@ -17,21 +18,42 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 class ImageDataset(Dataset):
-    def __init__(self, csv_path, img_dir, transform=None):
+    def __init__(self, csv_path, img_dir,prefix_len, tokenizer_type='gpt2', transform=None):
+        self.tokenizer = GPT2Tokenizer.from_pretrained(tokenizer_type)
+        self.prefix_len = prefix_len
         self.df = pd.read_csv(csv_path)
         self.df.columns = self.df.columns.str.strip()
         self.transform = transform
+        self.max_seq_len = 33 # 99% of captions are less than 33 (check untitle7.ipynb)
         self.img_dir = img_dir
+        #caption goes here
+        self.caption_tokens = []
+        for caption in self.df['comment']:
+            self.caption_tokens.append(self.tokenizer.encode(caption), dtype=torch.int64)
+        
+    def pad_token(self, caption_tokens):
+        padding = self.max_seq_len - caption_tokens.shape[0]
+        if padding > 0:
+            tokens = torch.cat((caption_tokens, torch.zeros(padding, dtype=torch.long) - 1))
+        elif padding < 0:
+            tokens = caption_tokens[:self.max_seq_len]
+        mask = tokens.ge(0)
+        tokens[~mask] = 0 # mask out padding
+        # creating the attention mask including the prefix
+        mask = torch.cat([torch.ones(self.prefix_len, dtype=torch.long), mask], dim=0)
+        return tokens, mask
     def __len__(self):
         return len(self.df)
     def __getitem__(self, index):
         row = self.df.iloc[index]
         image_path = os.path.join(self.img_dir, row['image_name'])
-        caption = row['comment']
         image = Image.open(image_path).convert('RGB')
+        # get caption and pad
+        tokens = self.caption_tokens[index]
+        tokens, mask = self.pad_token(tokens)
         if self.transform:
             image = self.transform(image)
-        return image, caption
+        return image, tokens, mask
 def load_image_loaders(csv_path, args, mode='train'):
     global transform
     true_csv_path = os.path.join(args.data_config['data_dir'], csv_path)

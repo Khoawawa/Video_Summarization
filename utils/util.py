@@ -11,7 +11,6 @@ def create_model(args):
         model = Captioner(**model_config)
     
     return model
-    
 def save_model(model_path: str, **save_dict):
     os.makedirs(os.path.split(model_path)[0], exist_ok=True)
     torch.save(save_dict, model_path)

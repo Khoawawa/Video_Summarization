@@ -11,6 +11,9 @@
         "text_backbone_name": "gpt2",
         "mapping_hidden_layers": 2,
         "pretrained": true,
-        "unfreeze_layer": 2
+        "unfreeze_layer": 2,
+        "prefix_len": 20,
+        "beam_size": 5,
+        "temperature": 1.0
     }
 }
