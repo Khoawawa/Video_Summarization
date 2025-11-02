@@ -18,7 +18,7 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 class ImageDataset(Dataset):
-    def __init__(self, csv_path, img_dir,prefix_len, tokenizer_type='gpt2', transform=None):
+    def __init__(self, csv_path, img_dir,prefix_len:int, tokenizer_type='gpt2', transform=None):
         self.tokenizer = GPT2Tokenizer.from_pretrained(tokenizer_type)
         self.prefix_len = prefix_len
         self.df = pd.read_csv(csv_path)
@@ -55,11 +55,11 @@ class ImageDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         return image, tokens, mask
-def load_image_loaders(csv_path, args, mode='train'):
+def load_image_loaders(csv_path, args, prefix_len:int,mode='train'):
     global transform
     true_csv_path = os.path.join(args.data_config['data_dir'], csv_path)
     true_img_dir = os.path.join(args.data_config['data_dir'], args.data_config['img_dir'])
-    dataset = ImageDataset(true_csv_path, true_img_dir, transform)
+    dataset = ImageDataset(true_csv_path, true_img_dir,prefix_len, transform)
     def split_dataset(dataset, train_ratio=0.7, val_ratio=0.15, seed=42):
         torch.manual_seed(seed)
         np.random.seed(seed)

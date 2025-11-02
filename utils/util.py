@@ -7,6 +7,7 @@ def create_model(args):
     absPath = os.path.join(os.path.dirname(__file__), "model_config.json")
     with open(absPath, "r") as f:
         model_config = json.load(f)[args.model]
+    args.model_config = model_config
     if "captioner" in args.model.lower():
         model = Captioner(**model_config)
     
