@@ -2,6 +2,7 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 import torch
 import torch.nn as nn
 import numpy as np
+custom_beam = False
 class AutoregressiveModel(nn.Module):
     def __init__(self, prefix_hidden_dim, backbone_name="gpt2",prefix_len=10, d_visual=2048, hidden_layers=1, stop_token='.',beam_size=5, temperature=1.0):
         super().__init__()
@@ -37,6 +38,69 @@ class AutoregressiveModel(nn.Module):
         prefix_embs = self.prefix_mlp(x)
         prefix = prefix_embs.view(-1, self.prefix_len, self.model.config.n_embd) # (B, prefix_len, D)
         return self.dropout(prefix)
+    def beam_search(self, generated,beam_size, batch_size, max_length, device):
+        # generated (B, beam_size, prefix_len, D)
+        #remap generated to (B*beam_size, prefix_len, D)
+        generated = generated.view(batch_size*beam_size, self.prefix_len, -1)
+        
+        seq_lengths = torch.ones(batch_size,self.beam_size, device=device)
+        is_stopped = torch.zeros(batch_size,self.beam_size, device=device, dtype=torch.bool)
+        scores = None
+        tokens = None
+        for i in range(max_length):
+            outputs = self.model(inputs_embeds=generated)
+            logits = outputs.logits[:,-1,:] / self.temperature # (B*beam_size, vocab_size)
+            #reshape logits to (B, beam_size, vocab_size)
+            logits = logits.view(batch_size, beam_size, -1)
+            log_probs = torch.log_softmax(logits, dim=-1) # (B, beam_size, vocab_size)
+            
+            if scores is None:
+                scores, next_tokens = logits.topk(beam_size, -1) # (B, beam_size)
+                next_tokens = next_tokens.view(batch_size*beam_size,1) # (B*beam_size, 1)
+                scores = scores.view(batch_size*beam_size) # (B*beam_size,)
+                tokens = next_tokens # (B*beam_size, 1)
+            else:
+                log_probs[is_stopped] = -float(np.inf)
+                log_probs[is_stopped,:, 0] = 0
+                scores_sum = scores.view(batch_size,beam_size, 1) + log_probs
+                seq_lengths[~is_stopped] += 1
+                scores_sum_avg = scores_sum / seq_lengths.unsqueeze(-1) # (B, beam_size, vocab_size)
+                scores_sum_avg, next_tokens = scores_sum_avg.view(batch_size, -1).topk(beam_size, dim=-1) # (B, beam_size)
+                next_tokens_source = next_tokens // log_probs.shape[2]
+                next_tokens = next_tokens % log_probs.shape[2]
+                next_tokens = next_tokens.view(batch_size*beam_size,1) # (B*beam_size, 1)
+                # update tokens
+                tokens = tokens.view(batch_size, beam_size, -1) # (B, beam_size, prefix_len)
+                tokens = tokens.gather(1, next_tokens_source.unsqueeze(-1).repeat(1,1,tokens.shape[-1])) # (B, beam_size, T)
+                tokens = tokens.view(batch_size*beam_size, -1) # (B*beam_size, prefix_len)
+                tokens = torch.cat((tokens, next_tokens), dim=1) # (B*beam_size, T+1)
+                generated = generated.view(batch_size, beam_size, -1) # (B, beam_size, prefix_len, D)
+                generated = generated.gather(1, next_tokens_source.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, generated.shape[2], generated.shape[3]))  # Shape: (B, beam_size, T, D)    
+                generated = generated.view(batch_size*beam_size, -1) # (B*beam_size, T+1, D)
+                scores = scores_sum_avg.view(batch_size*beam_size)
+                seq_lengths = seq_lengths.gather(1, next_tokens_source)
+                is_stopped = is_stopped.gather(1, next_tokens_source)
+            next_token_embed = self.model.transformer.wte(next_tokens) # (B*beam_size, D)
+            generated = torch.cat((generated, next_token_embed.unsqueeze(1)), dim=1) # (B*beam_size, T+1, D)
+            is_stopped = is_stopped | next_tokens.view(batch_size, beam_size).eq(self.stop_token_idx)
+            
+            if is_stopped.all():
+                break
+        scores = scores.view(batch_size, beam_size) / seq_lengths  # Shape: (B, beam_size)
+        tokens = tokens.view(batch_size, beam_size, -1)  # Shape: (B, beam_size, T)
+        output_texts = []
+        for b in range(batch_size):
+            batch_tokens = tokens[b].cpu().numpy()  # Shape: (beam_size, T)
+            batch_lengths = seq_lengths[b].cpu().numpy()  # Shape: (beam_size)
+            batch_scores = scores[b].cpu().numpy()  # Shape: (beam_size)
+            # Get top-scoring sequence
+            order = batch_scores.argsort()[::-1]  # Sort descending
+            top_text = self.tokenizer.decode(batch_tokens[order[0], :int(batch_lengths[order[0]])])
+            output_texts.append(top_text)
+
+        return output_texts # list[str] * B
+                
+                
     def forward(self, x_visual, caption_tokens=None,mask=None, max_length=50):
         """
         x_visual : Tensor[B, d_visual]
@@ -56,56 +120,20 @@ class AutoregressiveModel(nn.Module):
             out = self.model(inputs_embeds=inputs_embs, labels=labels, attention_mask=mask)
             return out
         else:
-            generated = prefix_embs
-            scores = None
-            tokens = None
-            seq_lengths = torch.ones(self.beam_size, device=x_visual.device)
-            is_stopped = torch.zeros(self.beam_size, device=x_visual.device, dtype=torch.bool)
-            for i in range(max_length):
-                outputs = self.model(inputs_embeds=generated)
-                logits = outputs.logits
-                logits = logits[:, -1, :] / self.temperature # (B, vocab_size)
-                logits = logits.softmax(-1).log()
-                if scores is None:
-                    scores, next_tokens = logits.topk(self.beam_size, -1)
-                    generated = generated.expand(self.beam_size, *generated.shape[1:])
-                    next_tokens, scores = next_tokens.permute(1, 0), scores.squeeze(0)
-                    if tokens is None:
-                        tokens = next_tokens
-                    else:
-                        tokens = tokens.expand(self.beam_size, *tokens.shape[1:])
-                        tokens = torch.cat((tokens, next_tokens), dim=1)
-                else:
-                    logits[is_stopped] = -float(np.inf)
-                    logits[is_stopped, 0] = 0
-                    scores_sum = scores[:,None] + logits
-                    seq_lengths[~is_stopped] += 1
-                    scores_sum_avg = scores_sum / seq_lengths[:,None]
-                    scores_sum_avg, next_tokens = scores_sum_avg.view(-1).topk(self.beam_size, -1)
-                    next_tokens_source = next_tokens // scores_sum.shape[1]
-                    seq_lengths = seq_lengths[next_tokens_source]
-                    next_tokens = next_tokens % scores_sum.shape[1]
-                    next_tokens = next_tokens.unsqueeze(1)
-                    tokens = tokens[next_tokens_source]
-                    tokens = torch.cat((tokens, next_tokens), dim=1)
-                    generated = generated[next_tokens_source]
-                    scores = scores_sum_avg * seq_lengths
-                    is_stopped = is_stopped[next_tokens_source]
-                next_token_embed = self.model.transformer.wte(next_tokens.squeeze()).view(generated.shape[0], 1, -1)
-                generated = torch.cat((generated, next_token_embed), dim=1)
-                is_stopped = is_stopped + next_tokens.eq(self.stop_token_idx).squeeze()
-                if is_stopped.all():
-                    break
-            scores = scores / seq_lengths
-            output_list = tokens.cpu().numpy()
-            output_texts = [
-                self.tokenizer.decode(
-                    output[: int(length)]
-                ) for output, length in zip(output_list, seq_lengths)
-            ]
-            order = scores.argsort(descending=True)
-            output_texts = [output_texts[i] for i in order]
-            return output_texts
+            generated = prefix_embs.unsqueeze(1).repeat(1, self.beam_size, 1, 1) # (B, beam_size, prefix_len, D)
+            if custom_beam:
+                return self.beam_search(generated,beam_size=self.beam_size,batch_size=B, max_length=max_length,device=x_visual.device)
+            else:
+                return self.model.generate(
+                    inputs_embs=prefix_embs,
+                    max_length=max_length + self.prefix_len,
+                    num_beams=self.beam_size,
+                    temperature=self.temperature,
+                    early_stopping=True,
+                    eos_token_id=self.stop_token_idx,
+                    pad_token_id=self.tokenizer.eos_token_id,
+                )
+            
 
 if __name__ == '__main__':
     model = AutoregressiveModel(prefix_hidden_dim=512, backbone_name="gpt2", d_visual=2048, hidden_layers=1)
