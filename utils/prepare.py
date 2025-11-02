@@ -27,9 +27,10 @@ class ImageDataset(Dataset):
         self.max_seq_len = 33 # 99% of captions are less than 33 (check untitle7.ipynb)
         self.img_dir = img_dir
         #caption goes here
-        self.caption_tokens = []
-        for caption in self.df['comment']:
-            self.caption_tokens.append(self.tokenizer.encode(caption), dtype=torch.int64)
+        self.caption_tokens = [
+            torch.tensor(self.tokenizer.encode(caption), dtype=torch.int64)
+            for caption in self.df['comment']
+        ]
         
     def pad_token(self, caption_tokens):
         padding = self.max_seq_len - caption_tokens.shape[0]
