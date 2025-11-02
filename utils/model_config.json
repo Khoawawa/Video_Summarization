@@ -26,6 +26,6 @@
         "prefix_len": 20,
         "beam_size": 3,
         "temperature": 1.0,
-        "max_length": 20
+        "max_length": 15
     }
 }
