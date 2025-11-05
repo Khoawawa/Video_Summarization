@@ -46,7 +46,7 @@ def train_main(args):
         # load optim checkpoint
         optimizer.load_state_dict(final_model['optimizer_state_dict'])
         # epoch cycle
-        start_epoch = final_model['epoch'] + 1
+        start_epoch = final_model['epoch']
     
     train_model(
         model=model, 
