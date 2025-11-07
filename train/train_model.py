@@ -51,7 +51,7 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
                 running_loss += loss.item() * caption_tokens.shape[0]
                 
                 tqdm_train_loader.set_description(
-                    f"Train epoch: {epoch}, train loss: {(running_loss / steps) : .8f}"
+                    f"Train epoch: {epoch}, loss: {(running_loss / steps) : .8f}, cross_entropy: {loss_ce.item() : .8f}, align_loss: {loss_align.item() : .8f}"
                 )
                 # torch.cuda.empty_cache()
             train_time = time.perf_counter() - start_time
