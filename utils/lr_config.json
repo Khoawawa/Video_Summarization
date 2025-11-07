@@ -6,5 +6,9 @@
     "Captioner_gpt2_resnet_v2": {
         "mlp_lr": 3e-4,
         "resnet_lr": 1e-5
+    },
+    "Captioner_gpt2_resnet_alignment":{
+        "mlp_lr": 3e-4,
+        "resnet_lr": 1e-5
     }
 }

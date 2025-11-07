@@ -5,7 +5,8 @@ from utils.util import create_model
 from utils.prepare import load_image_loaders
 from train.train_model import train_model, test_model
 import json
-
+def filter_params(module):
+    return [p for p in module.parameters() if p.requires_grad]
 def train_main(args):
     # from args load dataloader
     # push data_config to args
@@ -24,12 +25,14 @@ def train_main(args):
     model  = model.to(args.device)
     # create optimizer
     lr_list = [
-        {"params": model.visual_encoder.spatial_model.parameters(), "lr": args.lr_config["resnet_lr"]},
-        {"params": model.text_decoder.prefix_mlp.parameters(), "lr": args.lr_config["mlp_lr"]}
+        {"params": filter_params(model.visual_encoder.spatial_model), "lr": args.lr_config["resnet_lr"]},
+        {"params": filter_params(model.text_decoder.prefix_mlp), "lr": args.lr_config["mlp_lr"]}
     ]
     if args.optim.lower() == "adam":
         optimizer = torch.optim.Adam(lr_list)
     elif args.optim.lower() == "adamw":
+        lr_list[0]['weight_decay'] = 1e-5
+        lr_list[1]['weight_decay'] = 1e-4
         optimizer = torch.optim.AdamW(lr_list)
     else:
         raise NotImplementedError(f"Optimizer {args.optim} not implemented")

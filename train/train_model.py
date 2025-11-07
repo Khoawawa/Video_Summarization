@@ -12,6 +12,7 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
                 optimizer: optim.Optimizer, 
                 model_dir: str, args, start_epoch: int = 0):
     # setting up training loop
+    alpha = args.alpha
     num_epochs = args.epochs
     start_time = time.perf_counter()
     with open(model_dir + "/output.txt", "a") as f:
@@ -38,9 +39,11 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
                 caption_tokens = caption_tokens.to(args.device)
                 mask = mask.to(args.device)
                 
-                out = model(images,caption_tokens)
+                out, loss_align = model(images,caption_tokens)
                 logits = out.logits[:, args.model_config['prefix_len'] - 1: -1]
-                loss = nnf.cross_entropy(logits.reshape(-1, logits.shape[-1]), caption_tokens.flatten(),ignore_index=0)
+                loss_ce = nnf.cross_entropy(logits.reshape(-1, logits.shape[-1]), caption_tokens.flatten(),ignore_index=0)
+                
+                loss = loss_ce +  alpha * loss_align
                 # backpropagate
                 loss.backward()
                 optimizer.step()
