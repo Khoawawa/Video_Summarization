@@ -14,6 +14,7 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
     # setting up training loop
     alpha = args.alpha
     num_epochs = args.epochs
+    scaler = torch.amp.GradScaler()
     start_time = time.perf_counter()
     with open(model_dir + "/output.txt", "a") as f:
         f.write(str(model))
@@ -45,9 +46,12 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
                 
                 loss = loss_ce +  alpha * loss_align
                 # backpropagate
-                loss.backward()
-                optimizer.step()
                 optimizer.zero_grad()
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+                loss.backward()
+                
                 running_loss += loss.item() * caption_tokens.shape[0]
                 
                 tqdm_train_loader.set_description(
