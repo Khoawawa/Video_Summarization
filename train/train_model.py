@@ -50,7 +50,6 @@ def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataL
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
-                loss.backward()
                 
                 running_loss += loss.item() * caption_tokens.shape[0]
                 
