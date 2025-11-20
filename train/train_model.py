@@ -114,7 +114,8 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
     result_dir = args.data_config['out_dir']
     os.makedirs(result_dir, exist_ok=True)
     pred_file = f"{result_dir}/predictions.jsonl"
-    
+    viz_dir = f"{result_dir}/viz_images"
+    os.makedirs(viz_dir, exist_ok=True)
     model.eval()
     tokenizer = test_loader.dataset.dataset.tokenizer
     preds, tgts = [], []
