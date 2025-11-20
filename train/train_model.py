@@ -134,6 +134,20 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
             # Chỉ lưu batch đầu tiên hoặc vài ảnh mẫu để đỡ tốn dung lượng
             if batch_idx < 5:  # Lưu 5 batch đầu
                 for i in range(len(images)):
+                    # 1. Chuyển tensor về numpy và đổi chiều (H, W, C)
+                    img_show = images[i].cpu().permute(1, 2, 0).numpy()
+
+                    # === THÊM ĐOẠN NÀY ĐỂ SỬA LỖI ===
+                    # Thông số chuẩn của ImageNet (dùng cho hầu hết các model Vision)
+                    mean = np.array([0.485, 0.456, 0.406])
+                    std = np.array([0.229, 0.224, 0.225])
+
+                    # Công thức đảo ngược: (Ảnh * Std) + Mean
+                    img_show = (img_show * std) + mean
+
+                    # Cắt bỏ các giá trị thừa để ép về đúng khoảng [0, 1] -> Hết báo Warning
+                    img_show = np.clip(img_show, 0, 1)
+                    # ================================
                     img_show = images[i].cpu().permute(1, 2, 0).numpy()
                     # Normalize ngược (Un-normalize) nếu cần thiết tại đây
 
