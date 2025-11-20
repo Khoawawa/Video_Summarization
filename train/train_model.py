@@ -148,7 +148,7 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
                     # Cắt bỏ các giá trị thừa để ép về đúng khoảng [0, 1] -> Hết báo Warning
                     img_show = np.clip(img_show, 0, 1)
                     # ================================
-                    img_show = images[i].cpu().permute(1, 2, 0).numpy()
+
                     # Normalize ngược (Un-normalize) nếu cần thiết tại đây
 
                     plt.figure()
