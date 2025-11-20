@@ -117,6 +117,7 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
     tokenizer = test_loader.dataset.dataset.tokenizer
     preds, tgts = [], []
     with torch.no_grad():
+        batch_idx = 0
         for images, caption_tokens, _ in tqdm(test_loader, mininterval=3,desc="Validating"):
             # images : tensor of shape (B, C, H, W)
             # captions_token: tensor of shape (B, T, D)
