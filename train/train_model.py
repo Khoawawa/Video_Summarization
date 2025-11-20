@@ -126,6 +126,28 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
             captions = tokenizer.batch_decode(caption_tokens, skip_special_tokens=True)
             # [str] * B
             outputs_texts = model(images) # inference should only be through prefix
+            # --- LƯU ẢNH ---
+            # Chỉ lưu batch đầu tiên hoặc vài ảnh mẫu để đỡ tốn dung lượng
+            if batch_idx < 5:  # Lưu 5 batch đầu
+                for i in range(len(images)):
+                    img_show = images[i].cpu().permute(1, 2, 0).numpy()
+                    # Normalize ngược (Un-normalize) nếu cần thiết tại đây
+
+                    plt.figure()
+                    plt.imshow(img_show)
+                    plt.axis('off')
+                    # Lưu caption vào tên file hoặc vẽ lên ảnh
+                    file_name = f"{viz_dir}/batch{batch_idx}_img{i}.png"
+
+                    # Lưu text kèm theo
+                    text_content = f"Pred: {outputs_texts[i]}\nRef: {captions[i]}"
+                    plt.text(0, -10, text_content, fontsize=8, backgroundcolor='white')
+
+                    plt.savefig(file_name, bbox_inches='tight')
+                    plt.close()  # Đóng figure để giải phóng RAM
+
+            batch_idx += 1
+            # ---------------
             for refs, pred in zip(captions, outputs_texts):
                 tgts.append(refs if isinstance(refs, list) else [refs])
                 preds.append(pred)
