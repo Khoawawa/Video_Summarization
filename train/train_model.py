@@ -7,6 +7,8 @@ import copy
 from tqdm import tqdm
 from utils.util import save_model
 from utils.metric import calculate_metrics
+import matplotlib.pyplot as plt
+import numpy as np
 import json
 def train_model(model: nn.Module, data_loaders: dict[str, torch.utils.data.DataLoader], 
                 optimizer: optim.Optimizer, 
