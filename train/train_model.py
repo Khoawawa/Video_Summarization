@@ -132,43 +132,37 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
             outputs_texts = model(images) # inference should only be through prefix
             # --- LƯU ẢNH ---
             # Chỉ lưu batch đầu tiên hoặc vài ảnh mẫu để đỡ tốn dung lượng
-            if batch_idx < 5:  # Lưu 5 batch đầu
-                for i in range(len(images)):
-                    # 1. Chuyển tensor về numpy và đổi chiều (H, W, C)
-                    img_show = images[i].cpu().permute(1, 2, 0).numpy()
+            if batch_idx < 5:
+                B = images.size(0)
+                mean = np.array([0.485, 0.456, 0.406])
+                std = np.array([0.229, 0.224, 0.225])
 
-                    # === THÊM ĐOẠN NÀY ĐỂ SỬA LỖI ===
-                    # Thông số chuẩn của ImageNet (dùng cho hầu hết các model Vision)
-                    mean = np.array([0.485, 0.456, 0.406])
-                    std = np.array([0.229, 0.224, 0.225])
+                for i in range(B):
+                    img = images[i].cpu().permute(1,2,0).numpy()
+                    img = img * std + mean
+                    img = np.clip(img, 0, 1)
 
-                    # Công thức đảo ngược: (Ảnh * Std) + Mean
-                    img_show = (img_show * std) + mean
+                    fig, ax = plt.subplots()
+                    ax.imshow(img)
+                    ax.axis('off')
 
-                    # Cắt bỏ các giá trị thừa để ép về đúng khoảng [0, 1] -> Hết báo Warning
-                    img_show = np.clip(img_show, 0, 1)
-                    # ================================
+                    txt = f"Pred: {outputs_texts[i]}\nRef: {captions[i]}"
+                    ax.text(0, -5, txt, fontsize=8,
+                            backgroundcolor='white', va='bottom')
 
-                    # Normalize ngược (Un-normalize) nếu cần thiết tại đây
-
-                    plt.figure()
-                    plt.imshow(img_show)
-                    plt.axis('off')
-                    # Lưu caption vào tên file hoặc vẽ lên ảnh
-                    file_name = f"{viz_dir}/batch{batch_idx}_img{i}.png"
-
-                    # Lưu text kèm theo
-                    text_content = f"Pred: {outputs_texts[i]}\nRef: {captions[i]}"
-                    plt.text(0, -10, text_content, fontsize=8, backgroundcolor='white')
-
-                    plt.savefig(file_name, bbox_inches='tight')
-                    plt.close()  # Đóng figure để giải phóng RAM
+                    save_path = f"{viz_dir}/batch{batch_idx}_img{i}.png"
+                    fig.savefig(save_path, bbox_inches='tight')
+                    plt.close(fig)
 
             batch_idx += 1
             # ---------------
             for refs, pred in zip(captions, outputs_texts):
                 tgts.append(refs if isinstance(refs, list) else [refs])
                 preds.append(pred)
+            
+            if batch_idx >= 5:
+                break
+                
     metric = calculate_metrics(preds, tgts)
     print(metric)
     

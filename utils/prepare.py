@@ -60,6 +60,18 @@ def load_image_loaders(csv_path, args, prefix_len:int,mode='train'):
     true_csv_path = os.path.join(args.data_config['data_dir'], csv_path)
     true_img_dir = os.path.join(args.data_config['data_dir'], args.data_config['img_dir'])
     dataset = ImageDataset(csv_path=true_csv_path, img_dir=true_img_dir,prefix_len=prefix_len, transform=transform)
+    if mode == "test":
+        test_dataset = dataset
+        loaders = {
+            'test': DataLoader(
+                test_dataset,
+                batch_size=args.data_config['batch_size'],
+                shuffle=False,
+                pin_memory=torch.cuda.is_available(),
+            )
+        }
+        return loaders
+    
     def split_dataset(dataset, train_ratio=0.7, val_ratio=0.15, seed=42):
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -74,6 +86,7 @@ def load_image_loaders(csv_path, args, prefix_len:int,mode='train'):
         return train_dataset, val_dataset, test_dataset
     loaders = {}
     phases = ['train', 'val', 'test'] if mode != "test" else ['test']
+    
     train_dataset, val_dataset, test_dataset = split_dataset(dataset)
     pin_memory = torch.cuda.is_available()
     for phase in phases:
