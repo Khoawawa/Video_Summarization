@@ -117,7 +117,7 @@ def test_model(model: nn.Module, test_loader: torch.utils.data.DataLoader, args)
     viz_dir = f"{result_dir}/viz_images"
     os.makedirs(viz_dir, exist_ok=True)
     model.eval()
-    tokenizer = test_loader.dataset.dataset.tokenizer
+    tokenizer = test_loader.dataset.tokenizer
     preds, tgts = [], []
     with torch.no_grad():
         batch_idx = 0

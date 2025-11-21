@@ -7,6 +7,9 @@ from models.Autoregressive_model import AutoregressiveModel
 # tryout the clipcap method
 # for visual encoder we can use transfer learning of resnet
 # for the captioning generation we use prefix embedding + caption --> gpt2#
+class Captioner_v2(nn.Module):
+    def __init__(self,visual_backbone):
+        self.visual_encoder = VisualEncoder(visual_backbone)
 class Captioner(nn.Module):
     def __init__(self,
                  visual_backbone='resnet50',
