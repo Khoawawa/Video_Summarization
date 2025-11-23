@@ -1,6 +1,5 @@
 from collections import defaultdict
 from pycocoevalcap.bleu.bleu import Bleu
-from pycocoevalcap.meteor.meteor import Meteor
 from pycocoevalcap.cider.cider import Cider
 
 def calculate_metrics(preds, tgts):
@@ -17,9 +16,6 @@ def calculate_metrics(preds, tgts):
     # BLEU (1-4)
     bleu_scorer = Bleu(4)
     bleu_score, _ = bleu_scorer.compute_score(gts, res)
-    # METEOR
-    meteor_scorer = Meteor()
-    meteor_score, _ = meteor_scorer.compute_score(gts, res)
     # CIDEr
     cider_scorer = Cider()
     cider_score, _ = cider_scorer.compute_score(gts, res)
@@ -29,7 +25,6 @@ def calculate_metrics(preds, tgts):
         "BLEU-2": bleu_score[1],
         "BLEU-3": bleu_score[2],
         "BLEU-4": bleu_score[3],
-        "METEOR": meteor_score,
         "CIDEr": cider_score
     }
     

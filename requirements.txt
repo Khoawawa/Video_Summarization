@@ -4,3 +4,8 @@ torch
 torchvision
 torchaudio
 pycocoevalcap
+numpy
+datasets
+matplotlib
+pandas
+opencv-python
